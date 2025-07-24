@@ -13,7 +13,11 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    "types": ["@webgpu/types"],
+    //"moduleResolution": "node", // Or "NodeNext" or "Bundler" depending on your project and Node.js version
+    "resolveJsonModule": true, // Enables importing JSON files as modules
+    "esModuleInterop": true    // Recommended for better compatibility
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
