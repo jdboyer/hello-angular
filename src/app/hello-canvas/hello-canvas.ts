@@ -1,4 +1,8 @@
 import { AfterViewInit, Component, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { RectanglePipeline } from './rectangle-pipeline';
+import { RoundedRectanglePipeline } from './rounded-rectangle-pipeline';
+import { TexturedRectanglePipeline } from './textured-rectangle-pipeline';
+import { CirclePipeline } from './circle-pipeline';
 
 @Component({
   selector: 'app-hello-canvas',
@@ -15,9 +19,21 @@ export class HelloCanvas implements AfterViewInit {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
   private presentationFormat!: GPUTextureFormat;
-  private pipeline!: GPURenderPipeline;
-  private vertexBuffer!: GPUBuffer;
-  private colorBuffer!: GPUBuffer;
+    // Pipeline and buffers for the triangles
+  private trianglePipeline!: GPURenderPipeline;
+  private triangleVertexBuffer!: GPUBuffer;
+  private triangleColorBuffer!: GPUBuffer;
+
+  // New: Pipeline and buffers for the square
+  private squarePipeline!: GPURenderPipeline;
+  private squareVertexBuffer!: GPUBuffer;
+  private squareColorBuffer!: GPUBuffer;
+
+  private rectanglePipeline!: RectanglePipeline;
+  private roundedRectanglePipeline!: RoundedRectanglePipeline;
+  private texturedRectanglePipeline!: TexturedRectanglePipeline;
+  private circlePipeline!: CirclePipeline;
+
 
   @HostListener('window:resize', ['$event'])
   onResize(event: Event) {
@@ -111,121 +127,307 @@ export class HelloCanvas implements AfterViewInit {
     this.context.configure({
       device: this.device,
       format: this.presentationFormat,
-      alphaMode: 'opaque', // Or 'opaque'
+      alphaMode: 'premultiplied', // Or 'opaque'
     });
 
-    // 3. Define Triangle Vertices and Colors
-    // Vertices in Normalized Device Coordinates (NDC)
-    const positions = new Float32Array([
-      0.0,  0.8, 0.0, 1.0,  // Top vertex (x, y, z, w)
-      -0.8, -0.8, 0.0, 1.0,  // Bottom-left vertex
-      0.8, -0.8, 0.0, 1.0,   // Bottom-right vertex
+
+    //this.setupTextureRectagnles();
+    //this.setupRoundedRectangles();
+    this.setupRectangles();
+    this.setupTriangles();
+
+    this.rectanglePipeline = new RectanglePipeline(this.device, this.presentationFormat)
+    //this.setupCircles();
+    // textured squares for symbols
+    // circles 
+    // rectangles for grid lines
+    // rounded rectangles
+
+
+    // 7. Draw the Scene (now draws both triangles and square)
+    this.drawScene(5); // Draw 5 instances of triangles
+
+  }
+
+  // Lifecycle hook: Called once, before the component is destroyed
+  ngOnDestroy(): void {
+    // Release WebGPU resources if necessary, though the device will be lost
+    // when the tab closes or the component is destroyed.
+    // Explicit destruction is not always required for simple cases,
+    // but good practice for complex applications.
+    if (this.triangleVertexBuffer) { this.triangleVertexBuffer.destroy(); }
+    if (this.triangleColorBuffer) { this.triangleColorBuffer.destroy(); }
+    if (this.squareVertexBuffer) { this.squareVertexBuffer.destroy(); } // New
+    if (this.squareColorBuffer) { this.squareColorBuffer.destroy(); }   // New
+    // The device itself doesn't have a 'destroy' method, it's managed by the browser.
+    this.rectanglePipeline.destroy()
+  }
+  private drawScene(triangleInstanceCount: number = 1): void {
+    if (!this.device || !this.context || !this.trianglePipeline || !this.triangleVertexBuffer || !this.triangleColorBuffer ||
+        !this.squarePipeline || !this.squareVertexBuffer || !this.squareColorBuffer) {
+      console.error('WebGPU not fully initialized for all objects.');
+      return;
+    }
+
+    // Create a command encoder
+    const commandEncoder = this.device.createCommandEncoder();
+
+    // Start a render pass
+    const textureView = this.context.getCurrentTexture().createView();
+    const renderPassDescriptor: GPURenderPassDescriptor = {
+      colorAttachments: [
+        {
+          view: textureView,
+          clearValue: { r: 0.1, g: 0.1, b: 0.1, a: 1.0 }, // Clear color (dark grey)
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+      ],
+    };
+
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+    // --- Draw Triangles ---
+    //passEncoder.setPipeline(this.trianglePipeline);
+    //passEncoder.setVertexBuffer(0, this.triangleVertexBuffer);
+    //passEncoder.setVertexBuffer(1, this.triangleColorBuffer);
+    //passEncoder.draw(3, triangleInstanceCount); // Draw 3 vertices, 'triangleInstanceCount' times
+
+    // --- Draw Square ---
+    //passEncoder.setPipeline(this.squarePipeline); // Switch to the square's pipeline
+    //passEncoder.setVertexBuffer(0, this.squareVertexBuffer); // Set square's position buffer
+    //passEncoder.setVertexBuffer(1, this.squareColorBuffer);  // Set square's color buffer
+    //passEncoder.draw(6); // A square is 6 vertices (2 triangles)
+    this.rectanglePipeline.draw(passEncoder);
+
+    // End the render pass
+    passEncoder.end();
+
+    // Submit the command buffer to the GPU queue
+    this.device.queue.submit([commandEncoder.finish()]);
+  }
+
+  private setupRectangles() {
+    // --- New: Setup for Square ---
+    // 3. Define Square Vertices and Colors
+    // A square can be made of two triangles
+    const squarePositions = new Float32Array([
+      // Triangle 1 (bottom-left)
+      -0.5,  0.5, 0.0, 1.0, // Top-left
+      -0.5, -0.5, 0.0, 1.0, // Bottom-left
+       0.5, -0.5, 0.0, 1.0, // Bottom-right
+
+      // Triangle 2 (top-right)
+      -0.5,  0.5, 0.0, 1.0, // Top-left
+       0.5, -0.5, 0.0, 1.0, // Bottom-right
+       0.5,  0.5, 0.0, 1.0, // Top-right
     ]);
 
-    // Colors (RGBA) for each vertex
-    const colors = new Float32Array([
-      1.0, 0.0, 0.0, 0.6, // Red
-      0.0, 1.0, 0.0, 0.6, // Green
-      0.0, 0.0, 1.0, 0.6, // Blue
+    const squareColors = new Float32Array([
+      // Triangle 1 colors (e.g., yellow with transparency)
+      1.0, 1.0, 0.0, 0.7,
+      1.0, 1.0, 0.0, 0.7,
+      1.0, 1.0, 0.0, 0.7,
+
+      // Triangle 2 colors (e.g., magenta with transparency)
+      1.0, 0.0, 1.0, 0.7,
+      1.0, 0.0, 1.0, 0.7,
+      1.0, 0.0, 1.0, 0.7,
     ]);
 
-    // 4. Create GPU Buffers for Vertex Data
-    this.vertexBuffer = this.device.createBuffer({
-      size: positions.byteLength, // Size in bytes
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST, // Usable as vertex buffer, can be copied to
-      mappedAtCreation: true, // Map the buffer for writing immediately
-    });
-    new Float32Array(this.vertexBuffer.getMappedRange()).set(positions);
-    this.vertexBuffer.unmap(); // Unmap to make it accessible by the GPU
-
-    this.colorBuffer = this.device.createBuffer({
-      size: colors.byteLength,
+    // 4. Create GPU Buffers for Square Vertex Data
+    this.squareVertexBuffer = this.device.createBuffer({
+      size: squarePositions.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
     });
-    new Float32Array(this.colorBuffer.getMappedRange()).set(colors);
-    this.colorBuffer.unmap();
+    new Float32Array(this.squareVertexBuffer.getMappedRange()).set(squarePositions);
+    this.squareVertexBuffer.unmap();
 
-    // 5. Create Shader Modules
-    // Vertex Shader: Transforms vertex positions and passes color to fragment shader
-    const vertexShaderModule = this.device.createShaderModule({
+    this.squareColorBuffer = this.device.createBuffer({
+      size: squareColors.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.squareColorBuffer.getMappedRange()).set(squareColors);
+    this.squareColorBuffer.unmap();
+
+    // 5. Create Shader Modules for Square (can reuse if logic is identical, but showing separate for clarity)
+    const squareVertexShaderModule = this.device.createShaderModule({
       code: `
-        // Output struct for the vertex shader
         struct VertexOutput {
             @builtin(position) position: vec4<f32>,
-            @location(1) color: vec4<f32>, // Output color at location 1
+            @location(1) color: vec4<f32>,
         };
 
         @vertex
         fn main(
-          @location(0) position: vec4<f32>, // Vertex position from buffer (location 0)
-          @location(1) color: vec4<f32>,      // Vertex color from buffer (location 1)
-          @builtin(instance_index) instance_idx: u32
+          @location(0) position: vec4<f32>,
+          @location(1) color: vec4<f32>
         ) -> VertexOutput {
             var output: VertexOutput;
-            let offset_x = f32(instance_idx) * 0.2; // Adjust offset as needed
-            output.position = position + vec4<f32>(offset_x, 0.0, 0.0, 0.0);
-            output.color = color;       // Pass the color to the fragment shader
+            // Offset the square to the left to avoid overlapping triangles too much
+            output.position = position + vec4<f32>(-0.6, 0.0, 0.0, 0.0);
+            output.color = color;
             return output;
         }
       `,
     });
 
-    // Fragment Shader: Determines the color of each pixel
-    const fragmentShaderModule = this.device.createShaderModule({
+    const squareFragmentShaderModule = this.device.createShaderModule({
       code: `
-        // Input struct for the fragment shader, matching the vertex shader's output
         struct FragmentInput {
-            @location(1) color: vec4<f32>, // Interpolated color from vertex shader (location 1)
+            @location(1) color: vec4<f32>,
         };
 
         @fragment
         fn main(
-          input: FragmentInput // Receive the interpolated data via the struct
+          input: FragmentInput
         ) -> @location(0) vec4<f32> {
-          return input.color; // Output the interpolated color for the pixel
+          return input.color;
         }
       `,
     });
 
-    // 6. Create Render Pipeline
-    this.pipeline = this.device.createRenderPipeline({
-      layout: 'auto', // Automatically infer bind group layout from shader
+    // 6. Create Render Pipeline for Square
+    this.squarePipeline = this.device.createRenderPipeline({
+      layout: 'auto',
       vertex: {
-        module: vertexShaderModule,
+        module: squareVertexShaderModule,
         entryPoint: 'main',
         buffers: [
           { // Buffer for positions
-            arrayStride: 4 * 4, // 4 floats * 4 bytes/float = 16 bytes per vertex
-            attributes: [
-              {
-                shaderLocation: 0, // Corresponds to @location(0) in shader
-                offset: 0,
-                format: 'float32x4', // vec4<f32>
-              },
-            ],
+            arrayStride: 4 * 4,
+            attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x4' }],
           },
           { // Buffer for colors
-            arrayStride: 4 * 4, // 4 floats * 4 bytes/float = 16 bytes per vertex
-            attributes: [
-              {
-                shaderLocation: 1, // Corresponds to @location(1) in shader
-                offset: 0,
-                format: 'float32x4', // vec4<f32>
-              },
-            ],
+            arrayStride: 4 * 4,
+            attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x4' }],
           },
         ],
       },
       primitive: {
-        topology: 'triangle-list', // Draw a list of triangles
+        topology: 'triangle-list', // A square is rendered as two triangles
       },
       fragment: {
-        module: fragmentShaderModule,
+        module: squareFragmentShaderModule,
         entryPoint: 'main',
         targets: [
           {
-            format: this.presentationFormat, // Output format matches canvas
+            format: this.presentationFormat,
+            blend: { // Enable blending for transparency
+              color: {
+                srcFactor: 'src-alpha',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
+              alpha: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+  private setupTriangles(): void {
+        // --- Setup for Triangles ---
+    // 3. Define Triangle Vertices and Colors
+    const trianglePositions = new Float32Array([
+      0.0,  0.8, 0.0, 1.0,  // Top vertex (x, y, z, w)
+      -0.8, -0.8, 0.0, 1.0,  // Bottom-left vertex
+      0.8, -0.8, 0.0, 1.0,   // Bottom-right vertex
+    ]);
+
+    const triangleColors = new Float32Array([
+      1.0, 0.0, 0.0, 0.6, // Red with 60% opacity
+      0.0, 1.0, 0.0, 0.6, // Green with 60% opacity
+      0.0, 0.0, 1.0, 0.6, // Blue with 60% opacity
+    ]);
+
+    // 4. Create GPU Buffers for Triangle Vertex Data
+    this.triangleVertexBuffer = this.device.createBuffer({
+      size: trianglePositions.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.triangleVertexBuffer.getMappedRange()).set(trianglePositions);
+    this.triangleVertexBuffer.unmap();
+
+    this.triangleColorBuffer = this.device.createBuffer({
+      size: triangleColors.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.triangleColorBuffer.getMappedRange()).set(triangleColors);
+    this.triangleColorBuffer.unmap();
+
+    // 5. Create Shader Modules for Triangles
+    const triangleVertexShaderModule = this.device.createShaderModule({
+      code: `
+        struct VertexOutput {
+            @builtin(position) position: vec4<f32>,
+            @location(1) color: vec4<f32>,
+        };
+
+        @vertex
+        fn main(
+          @location(0) position: vec4<f32>,
+          @location(1) color: vec4<f32>,
+          @builtin(instance_index) instance_idx: u32
+        ) -> VertexOutput {
+            var output: VertexOutput;
+            let offset_x = f32(instance_idx) * 0.2;
+            output.position = position + vec4<f32>(offset_x, 0.0, 0.0, 0.0);
+            output.color = color;
+            return output;
+        }
+      `,
+    });
+
+    const triangleFragmentShaderModule = this.device.createShaderModule({
+      code: `
+        struct FragmentInput {
+            @location(1) color: vec4<f32>,
+        };
+
+        @fragment
+        fn main(
+          input: FragmentInput
+        ) -> @location(0) vec4<f32> {
+          return input.color;
+        }
+      `,
+    });
+
+    // 6. Create Render Pipeline for Triangles
+    this.trianglePipeline = this.device.createRenderPipeline({
+      layout: 'auto',
+      vertex: {
+        module: triangleVertexShaderModule,
+        entryPoint: 'main',
+        buffers: [
+          { // Buffer for positions
+            arrayStride: 4 * 4,
+            attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x4' }],
+          },
+          { // Buffer for colors
+            arrayStride: 4 * 4,
+            attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x4' }],
+          },
+        ],
+      },
+      primitive: {
+        topology: 'triangle-list',
+      },
+      fragment: {
+        module: triangleFragmentShaderModule,
+        entryPoint: 'main',
+        targets: [
+          {
+            format: this.presentationFormat,
             blend: {
               color: {
                 srcFactor: 'src-alpha',
@@ -242,114 +444,8 @@ export class HelloCanvas implements AfterViewInit {
         ],
       },
     });
-
-    // 7. Draw the Triangle
-    this.drawTriangleWebGPU();
   }
 
-  // Lifecycle hook: Called once, before the component is destroyed
-  ngOnDestroy(): void {
-    // Release WebGPU resources if necessary, though the device will be lost
-    // when the tab closes or the component is destroyed.
-    // Explicit destruction is not always required for simple cases,
-    // but good practice for complex applications.
-    if (this.vertexBuffer) {
-      this.vertexBuffer.destroy();
-    }
-    if (this.colorBuffer) {
-      this.colorBuffer.destroy();
-    }
-    // The device itself doesn't have a 'destroy' method, it's managed by the browser.
-  }
-
-  /**
-   * Encodes commands to draw the triangle using WebGPU.
-   */
-  private drawTriangleWebGPU(): void {
-    if (!this.device || !this.context || !this.pipeline || !this.vertexBuffer || !this.colorBuffer) {
-      console.error('WebGPU not fully initialized.');
-      return;
-    }
-
-    // Create a command encoder
-    const commandEncoder = this.device.createCommandEncoder();
-
-    // Start a render pass
-    const textureView = this.context.getCurrentTexture().createView(); // Get the texture to draw on
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: { r: 0.1, g: 0.1, b: 0.1, a: 1.0 }, // Clear color (dark grey)
-          loadOp: 'clear', // Clear the texture before drawing
-          storeOp: 'store', // Store the result in the texture
-        },
-      ],
-    };
-
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-    // Set the render pipeline
-    passEncoder.setPipeline(this.pipeline);
-
-    // Set the vertex buffers
-    passEncoder.setVertexBuffer(0, this.vertexBuffer); // Corresponds to buffer at index 0 in pipeline config
-    passEncoder.setVertexBuffer(1, this.colorBuffer);  // Corresponds to buffer at index 1 in pipeline config
-
-    // Draw the 3 vertices (our triangle)
-    passEncoder.draw(3, 5); // Draw 3 vertices
-
-    // End the render pass
-    passEncoder.end();
-
-    // Submit the command buffer to the GPU queue
-    this.device.queue.submit([commandEncoder.finish()]);
-  }
-
-  private drawTriangle(): void {
-    if (!this.context) return;
-
-    const ctx = this.context;
-
-    // Set drawing style for the triangle
-    //ctx.strokeStyle = '#3B82F6'; // Blue color
-    //ctx.fillStyle = '#60A5FA';   // Lighter blue fill
-    //ctx.lineWidth = 1;           // Line thickness
-
-    // Start drawing the triangle
-    //ctx.beginPath();
-    //ctx.moveTo(20, 5);  // Top point (x, y)
-    //ctx.lineTo(5, 35);  // Bottom-left point
-    //ctx.lineTo(35, 35); // Bottom-right point
-    //ctx.closePath();      // Closes the path back to the starting point
-
-    //ctx.stroke(this.myPath); // Draws the outline of the triangle
-    //ctx.fill(this.myPath);   // Fills the triangle with the fillStyle color
-  }
-  private convertRemToPixels(rem: number): number {    
-    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
-  }
-  private drawTriangleB(): void {
-//    if (!this.overlayContext) return;
-
-//    const ctx = this.overlayContext;
-
-    // Set drawing style for the triangle
-//    ctx.strokeStyle = '#880000'; // Blue color
-  //  ctx.fillStyle = '#600000';   // Lighter blue fill
- //   ctx.lineWidth = 3;           // Line thickness
-
-    // Start drawing the triangle
-//    ctx.beginPath();
-//    ctx.moveTo(190, 100);  // Top point (x, y)
-//    ctx.lineTo(50, 300);  // Bottom-left point
-//    ctx.lineTo(350, 300); // Bottom-right point
-//    ctx.closePath();      // Closes the path back to the starting point
-//
-//    ctx.stroke(); // Draws the outline of the triangle
-//    ctx.fill();   // Fills the triangle with the fillStyle color
-
-  }
   private resizeCanvas(): void {
     const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
     const parent = canvasEl.parentElement;
@@ -368,7 +464,7 @@ export class HelloCanvas implements AfterViewInit {
       canvasEl.style.width = canvasEl.width.toString() + "px"
       canvasEl.style.height = canvasEl.height.toString() + "px"
       //this.context.scale(this.convertRemToPixels(1), this.convertRemToPixels(1))
-      this.drawTriangleWebGPU(); // Call the method to draw the triangle
+      this.drawScene(); // Call the method to draw the triangle
       // Restore drawing after resizing
       //this.context.putImageData(imageData, 0, 0);
     }
