@@ -5,6 +5,7 @@ export class RectanglePipeline {
   private colorBuffer!: GPUBuffer;
   private uniformBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
+  private aspectRatio: number = 1.0; // Store current aspect ratio
 
 
   constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
@@ -61,16 +62,28 @@ export class RectanglePipeline {
             @location(1) color: vec4<f32>,
         };
 
+        struct RectUniforms {
+            center: vec4f,
+            size: vec4f,
+            radius: vec4f,
+            aspectRatio: f32,
+            // 12 bytes padding for alignment
+            padding: vec3f,
+        };
+
+        @group(0) @binding(0)
+        var<uniform> rect: RectUniforms;
+
         @vertex
         fn main(
           @location(0) position: vec4<f32>,
           @location(1) color: vec4<f32>
         ) -> VertexOutput {
             var output: VertexOutput;
-            // Offset the square to the left to avoid overlapping triangles too much
-            output.uv = position.xy * 2.0;// + 1.0) / 2.0;
-            output.position = position;
-            //output.position = position + vec4<f32>(-0.3, 0.0, 0.0, 0.0);
+            // Scale x by 1.0 / aspectRatio to maintain fixed aspect
+            let scaled = vec4f(position.x / rect.aspectRatio, position.y, position.z, position.w);
+            output.uv = scaled.xy * 2.0;
+            output.position = scaled;
             output.color = color;
             return output;
         }
@@ -83,22 +96,17 @@ export class RectanglePipeline {
             @location(1) color: vec4<f32>,
         };
 
-        // Uniforms for rectangle properties
         struct RectUniforms {
-            center: vec4f, // xy for center, zw unused or for other properties
-            size: vec4f,   // xy for width/height, zw unused
+            center: vec4f,
+            size: vec4f,
             radius: vec4f,
-            // Add padding to make it a multiple of 16 bytes
-            // For example, if you add another float, you might need to add 3 floats for padding.
-            // Here, 3 floats (12 bytes) + 4 bytes for radius = 16 bytes.
-            // @size(12) padding: array<f32, 3>,
+            aspectRatio: f32,
+            padding: vec3f,
         };
 
         @group(0) @binding(0)
         var<uniform> rect: RectUniforms;
 
-        // Signed Distance Function for a rounded box
-        // Based on: https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
         fn sdRoundedBox(p: vec2f, b: vec2f, r: f32) -> f32 {
             let q = abs(p) - b + r;
             return length(max(q, vec2f(0.0))) + min(max(q.x, q.y), 0.0) - r;
@@ -109,34 +117,18 @@ export class RectanglePipeline {
           @location(0) uv: vec2f,
           input: FragmentInput
         ) -> @location(0) vec4<f32> {
-
-            // Convert UV (0 to 1) to clip space (-1 to 1)
-            //let fragCoord = uv * 2.0 - 1.0;
             let fragCoord = uv;
-
-            // Rectangle half-size relative to clip space
             let halfSize = rect.size.xy / 2.0;
-
-            // Adjust fragment coordinate relative to rectangle's center
             let p = fragCoord - rect.center.xy;
-
             let d = sdRoundedBox(p, halfSize, rect.radius.x);
-
-            // Smoothstep for anti-aliasing
-            // fwidth(d) approximates the width of a pixel in terms of 'd' values.
             let alpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
-
-            //let color = vec4f(0.0, 0.7, 0.9, 1.0); // Cyan color for the rectangle
-            //let color = input.color
-
             return vec4f(input.color.rgb, input.color.a * alpha);
-            //return input.color;
         }
       `,
     });
 
-    // Uniform buffer for rectangle properties
-    const uniformBufferSize = (4 + 4 + 4) * 4; // vec4 for position, vec4 for size, float for radius
+    // Uniform buffer for rectangle properties + aspect ratio
+    const uniformBufferSize = 80;//(4 + 4 + 4) * 4 + 16; // 3x vec4 + 1 float + 12 bytes padding = 64 bytes
     this.uniformBuffer = device.createBuffer({
         size: uniformBufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -146,7 +138,7 @@ export class RectanglePipeline {
         entries: [
             {
                 binding: 0,
-                visibility: GPUShaderStage.FRAGMENT,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                 buffer: { type: "uniform" },
             },
         ],
@@ -217,16 +209,30 @@ export class RectanglePipeline {
     const rectWidth = 2.0; // Normalized width
     const rectHeight = 2.0; // Normalized height
     const borderRadius = 0.1; // Normalized radius
+    const aspectRatio = 1.0; // Default, will be updated dynamically
 
     const uniformData = new Float32Array(uniformBufferSize / 4);
     uniformData[0] = rectX;
     uniformData[1] = rectY;
     uniformData[4] = rectWidth;
     uniformData[5] = rectHeight;
-    uniformData[8] = borderRadius; // Stored at index 4
+    uniformData[8] = borderRadius;
+    uniformData[12] = aspectRatio; // aspectRatio at index 12
 
     device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
+    this.aspectRatio = aspectRatio;
 
+  }
+
+  /**
+   * Call this before draw() to update the aspect ratio dynamically.
+   * @param device GPUDevice
+   * @param aspectRatio number (canvas width / height)
+   */
+  updateAspectRatio(device: GPUDevice, aspectRatio: number) {
+    this.aspectRatio = aspectRatio;
+    // Update only the aspectRatio float in the buffer (offset = 12 * 4 = 48 bytes)
+    device.queue.writeBuffer(this.uniformBuffer, 48, new Float32Array([aspectRatio]));
   }
 
   draw(passEncoder: GPURenderPassEncoder) {

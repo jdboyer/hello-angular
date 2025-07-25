@@ -141,6 +141,7 @@ export class HelloCanvas implements AfterViewInit {
     //passEncoder.setVertexBuffer(0, this.squareVertexBuffer); // Set square's position buffer
     //passEncoder.setVertexBuffer(1, this.squareColorBuffer);  // Set square's color buffer
     //passEncoder.draw(6); // A square is 6 vertices (2 triangles)
+    this.rectanglePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
     this.rectanglePipeline.draw(passEncoder);
     //this.roundedRectanglePipeline.draw(passEncoder);
     //this.texturedRectanglePipeline.draw(passEncoder);
@@ -282,7 +283,6 @@ export class HelloCanvas implements AfterViewInit {
       //this.context.scale(1, 1);
       canvasEl.width = parent.offsetWidth;
       canvasEl.height = parent.offsetHeight;
-      console.log(canvasEl.width.toString() + "," + canvasEl.height.toString());
       canvasEl.style.width = canvasEl.width.toString() + "px"
       canvasEl.style.height = canvasEl.height.toString() + "px"
       //this.context.scale(this.convertRemToPixels(1), this.convertRemToPixels(1))
