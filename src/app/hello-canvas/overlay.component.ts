@@ -31,6 +31,7 @@ export class OverlayComponent {
   onScroll(event: Event) {
     const value = +(event.target as HTMLInputElement).value;
     this.scrollPosition.set(value);
-    this.offsetX.set(value);
+    this.offsetX.set((value * 10) % 200);
+    console.log(this.offsetX());
   }
 } 
