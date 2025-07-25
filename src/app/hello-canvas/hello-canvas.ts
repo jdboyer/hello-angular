@@ -3,6 +3,7 @@ import { RectanglePipeline } from './rectangle-pipeline';
 import { RoundedRectanglePipeline } from './rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from './textured-rectangle-pipeline';
 import { CirclePipeline } from './circle-pipeline';
+import { GridPipeline } from './grid-pipeline';
 
 @Component({
   selector: 'app-hello-canvas',
@@ -25,6 +26,7 @@ export class HelloCanvas implements AfterViewInit {
   private roundedRectanglePipeline!: RoundedRectanglePipeline;
   private texturedRectanglePipeline!: TexturedRectanglePipeline;
   private circlePipeline!: CirclePipeline;
+  private gridPipeline!: GridPipeline;
 
 
   @HostListener('window:resize', ['$event'])
@@ -99,6 +101,8 @@ export class HelloCanvas implements AfterViewInit {
       0, 0.5, 0, 1,
     ]);
 
+    // Add grid lines at y = 0.2, 0.4, 0.6, 0.8 (normalized)
+    this.gridPipeline = new GridPipeline(this.device, this.presentationFormat, [0.2, 0.4, 0.6, 0.8]);
     this.rectanglePipeline = new RectanglePipeline(this.device, this.presentationFormat, instanceMatrices)
     this.roundedRectanglePipeline = new RoundedRectanglePipeline(this.device, this.presentationFormat)
     this.texturedRectanglePipeline = new TexturedRectanglePipeline(this.device, this.presentationFormat)
@@ -123,6 +127,7 @@ export class HelloCanvas implements AfterViewInit {
     this.roundedRectanglePipeline.destroy()
     this.texturedRectanglePipeline.destroy()
     this.circlePipeline.destroy()
+    this.gridPipeline.destroy();
   }
   private drawScene(): void {
     //if (!this.device || !this.context || !this.trianglePipeline || !this.triangleVertexBuffer || !this.triangleColorBuffer ||
@@ -149,6 +154,8 @@ export class HelloCanvas implements AfterViewInit {
 
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
+    // Draw grid lines first (so they appear behind other shapes)
+    this.gridPipeline.draw(passEncoder);
     // --- Draw Triangles ---
     //passEncoder.setPipeline(this.trianglePipeline);
     //passEncoder.setVertexBuffer(0, this.triangleVertexBuffer);
@@ -160,9 +167,10 @@ export class HelloCanvas implements AfterViewInit {
     //passEncoder.setVertexBuffer(0, this.squareVertexBuffer); // Set square's position buffer
     //passEncoder.setVertexBuffer(1, this.squareColorBuffer);  // Set square's color buffer
     //passEncoder.draw(6); // A square is 6 vertices (2 triangles)
-    this.rectanglePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
-    this.rectanglePipeline.draw(passEncoder);
-    //this.roundedRectanglePipeline.draw(passEncoder);
+    //this.rectanglePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
+    //this.rectanglePipeline.draw(passEncoder);
+    this.roundedRectanglePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
+    this.roundedRectanglePipeline.draw(passEncoder);
     //this.texturedRectanglePipeline.draw(passEncoder);
     this.circlePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
     this.circlePipeline.draw(passEncoder);
