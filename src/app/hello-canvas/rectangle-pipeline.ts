@@ -6,9 +6,11 @@ export class RectanglePipeline {
   private uniformBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
   private aspectRatio: number = 1.0; // Store current aspect ratio
+  private instanceMatrixBuffer!: GPUBuffer;
+  private instanceCount: number = 1;
 
 
-  constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
+  constructor(device: GPUDevice, presentationFormat: GPUTextureFormat, instanceMatrices: Float32Array) {
     // --- New: Setup for Square ---
     // 3. Define Square Vertices and Colors
     // A square can be made of two triangles
@@ -53,6 +55,16 @@ export class RectanglePipeline {
     new Float32Array(this.colorBuffer.getMappedRange()).set(squareColors);
     this.colorBuffer.unmap();
 
+    // New: Create instance matrix buffer
+    this.instanceMatrixBuffer = device.createBuffer({
+      size: instanceMatrices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.instanceMatrixBuffer.getMappedRange()).set(instanceMatrices);
+    this.instanceMatrixBuffer.unmap();
+    this.instanceCount = instanceMatrices.length / 16;
+
     // 5. Create Shader Modules for Square (can reuse if logic is identical, but showing separate for clarity)
     const squareVertexShaderModule = device.createShaderModule({
       code: `
@@ -77,11 +89,17 @@ export class RectanglePipeline {
         @vertex
         fn main(
           @location(0) position: vec4<f32>,
-          @location(1) color: vec4<f32>
+          @location(1) color: vec4<f32>,
+          @location(2) m0: vec4<f32>,
+          @location(3) m1: vec4<f32>,
+          @location(4) m2: vec4<f32>,
+          @location(5) m3: vec4<f32>
         ) -> VertexOutput {
             var output: VertexOutput;
+            let model = mat4x4<f32>(m0, m1, m2, m3);
+            let world = model * position;
             // Scale x by 1.0 / aspectRatio to maintain fixed aspect
-            let scaled = vec4f(position.x / rect.aspectRatio, position.y, position.z, position.w);
+            let scaled = vec4f(world.x / rect.aspectRatio, world.y, world.z, world.w);
             output.uv = scaled.xy * 2.0;
             output.position = scaled;
             output.color = color;
@@ -157,6 +175,16 @@ export class RectanglePipeline {
           { // Buffer for colors
             arrayStride: 4 * 4,
             attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x4' }],
+          },
+          { // Buffer for instance matrices
+            arrayStride: 4 * 16,
+            stepMode: 'instance',
+            attributes: [
+              { shaderLocation: 2, offset: 0, format: 'float32x4' },
+              { shaderLocation: 3, offset: 16, format: 'float32x4' },
+              { shaderLocation: 4, offset: 32, format: 'float32x4' },
+              { shaderLocation: 5, offset: 48, format: 'float32x4' },
+            ],
           },
         ],
       },
@@ -234,14 +262,16 @@ export class RectanglePipeline {
     passEncoder.setPipeline(this.pipeline); // Switch to the square's pipeline
     passEncoder.setVertexBuffer(0, this.vertexBuffer); // Set square's position buffer
     passEncoder.setVertexBuffer(1, this.colorBuffer);  // Set square's color buffer
+    passEncoder.setVertexBuffer(2, this.instanceMatrixBuffer); // Set instance matrix buffer
     passEncoder.setBindGroup(0, this.bindGroup);
-    passEncoder.draw(6); // A square is 6 vertices (2 triangles)
+    passEncoder.draw(6, this.instanceCount); // Draw 6 vertices per instance
   }
 
   destroy() {
     if (this.vertexBuffer) { this.vertexBuffer.destroy(); }
     if (this.colorBuffer) { this.colorBuffer.destroy(); }
     if (this.uniformBuffer) { this.colorBuffer.destroy(); }
+    if (this.instanceMatrixBuffer) { this.instanceMatrixBuffer.destroy(); }
   }
 
 }

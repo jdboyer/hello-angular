@@ -80,7 +80,26 @@ export class HelloCanvas implements AfterViewInit {
     //this.setupTextureRectagnles();
     //this.setupRoundedRectangles();
 
-    this.rectanglePipeline = new RectanglePipeline(this.device, this.presentationFormat)
+    // Example: Create 3 instance matrices (identity, translate right, translate up)
+    const instanceMatrices = new Float32Array([
+      // Identity
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+      // Translate right
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0.5, 0, 0, 1,
+      // Translate up
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0.5, 0, 1,
+    ]);
+
+    this.rectanglePipeline = new RectanglePipeline(this.device, this.presentationFormat, instanceMatrices)
     this.roundedRectanglePipeline = new RoundedRectanglePipeline(this.device, this.presentationFormat)
     this.texturedRectanglePipeline = new TexturedRectanglePipeline(this.device, this.presentationFormat)
     this.circlePipeline = new CirclePipeline(this.device, this.presentationFormat)
