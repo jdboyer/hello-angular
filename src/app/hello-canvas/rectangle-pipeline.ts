@@ -117,13 +117,7 @@ export class RectanglePipeline {
           @location(0) uv: vec2f,
           input: FragmentInput
         ) -> @location(0) vec4<f32> {
-            // Aspect-correct the x coordinate for SDF
-            let fragCoord = vec2f(uv.x * rect.aspectRatio, uv.y);
-            let halfSize = rect.size.xy / 2.0;
-            let p = fragCoord - rect.center.xy;
-            let d = sdRoundedBox(p, halfSize, rect.radius.x);
-            let alpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
-            return vec4f(input.color.rgb, input.color.a * alpha);
+            return input.color;
         }
       `,
     });

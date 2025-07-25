@@ -145,7 +145,8 @@ export class HelloCanvas implements AfterViewInit {
     this.rectanglePipeline.draw(passEncoder);
     //this.roundedRectanglePipeline.draw(passEncoder);
     //this.texturedRectanglePipeline.draw(passEncoder);
-    //this.circlePipeline.draw(passEncoder);
+    this.circlePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
+    this.circlePipeline.draw(passEncoder);
 
     // End the render pass
     passEncoder.end();
