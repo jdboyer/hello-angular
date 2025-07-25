@@ -1,0 +1,28 @@
+import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-overlay',
+  standalone: true,
+  template: `
+    <div class="overlay-container">
+      <input
+        type="range"
+        class="overlay-scrollbar"
+        [min]="0"
+        [max]="scrollRange()"
+        [value]="scrollPosition()"
+        (input)="onScroll($event)"
+      />
+    </div>
+  `,
+  styleUrls: ['./overlay.component.css']
+})
+export class OverlayComponent {
+  @Input({ required: true }) scrollRange = signal(100);
+  @Input({ required: true }) scrollPosition = signal(0);
+
+  onScroll(event: Event) {
+    const value = +(event.target as HTMLInputElement).value;
+    this.scrollPosition.set(value);
+  }
+} 

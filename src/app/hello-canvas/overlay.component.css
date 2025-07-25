@@ -1,0 +1,36 @@
+.overlay-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  pointer-events: none; /* allow clicks to pass through except for scrollbar */
+  z-index: 20;
+}
+.overlay-scrollbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  pointer-events: auto;
+  height: 18px;
+  background: transparent;
+  /* Webkit scrollbar style mimic */
+  -webkit-appearance: none;
+}
+.overlay-scrollbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 60px;
+  height: 16px;
+  background: #888;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.overlay-scrollbar::-webkit-slider-runnable-track {
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+} 

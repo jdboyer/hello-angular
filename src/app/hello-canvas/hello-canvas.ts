@@ -4,10 +4,12 @@ import { RoundedRectanglePipeline } from './rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from './textured-rectangle-pipeline';
 import { CirclePipeline } from './circle-pipeline';
 import { GridPipeline } from './grid-pipeline';
+import { OverlayComponent } from './overlay.component';
+import { signal } from '@angular/core';
 
 @Component({
   selector: 'app-hello-canvas',
-  imports: [],
+  imports: [OverlayComponent],
   templateUrl: './hello-canvas.html',
   styleUrl: './hello-canvas.css'
 })
@@ -28,6 +30,8 @@ export class HelloCanvas implements AfterViewInit {
   private circlePipeline!: CirclePipeline;
   private gridPipeline!: GridPipeline;
 
+  scrollRange = signal(100);
+  scrollPosition = signal(0);
 
   @HostListener('window:resize', ['$event'])
   onResize(event: Event) {
