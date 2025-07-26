@@ -32,7 +32,30 @@ export class HelloCanvas implements AfterViewInit {
 
   scrollRange = signal(100);
   scrollPosition = signal(0);
-  textList = signal<string[]>(['Overlay Text 1', 'Overlay Text 2', 'Overlay Text 3']);
+  canvasWidth = signal(500);
+  textList = signal<string[]>([
+    'Overlay Text 1', 
+    'Overlay Text 2', 
+    'Overlay Text 3',
+    'Overlay Text 4',
+    'Overlay Text 5',
+    'Overlay Text 6',
+    'Overlay Text 7',
+    'Overlay Text 8',
+    'Overlay Text 9',
+    'Overlay Text 10',
+    'Overlay Text 11',
+    'Overlay Text 12',
+    'Overlay Text 13',
+    'Overlay Text 14',
+    'Overlay Text 15',
+    'Overlay Text 16',
+    'Overlay Text 17',
+    'Overlay Text 18',
+    'Overlay Text 19',
+    'Overlay Text 20',
+    'Overlay Text 21',
+  ].reverse());
   offsetX = signal(0);
 
   @HostListener('window:resize', ['$event'])

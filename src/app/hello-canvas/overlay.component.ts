@@ -1,20 +1,22 @@
-import { Component, Input, signal } from '@angular/core';
+import { Component, Input, signal, computed } from '@angular/core';
 
 @Component({
   selector: 'app-overlay',
   standalone: true,
   template: `
     <div class="overlay-container">
-      <div class="overlay-text-row" [style.marginLeft.px]="offsetX()">
-        @for (text of textList(); track text) {
-          <span class="overlay-text">{{ text }}</span>
-        }
-      </div>
+      @for (text of visibleTexts(); track $index; let i = $index) {
+        <span
+          class="axis-label"
+          [style.left.px]="(i) * (canvasWidthValue) / 10 + offsetX()"
+        >{{ text }}</span>
+      }
       <input
         type="range"
         class="overlay-scrollbar"
         [min]="0"
-        [max]="scrollRange()"
+        [max]="1"
+        [step]="0.001"
         [value]="scrollPosition()"
         (input)="onScroll($event)"
       />
@@ -27,11 +29,24 @@ export class OverlayComponent {
   @Input({ required: true }) scrollPosition = signal(0);
   @Input({ required: true }) textList = signal<string[]>([]);
   @Input({ required: true }) offsetX = signal(0);
+  @Input({ required: true }) canvasWidth = signal(500);
+
+  get canvasWidthValue() {
+    return this.canvasWidth();
+  }
+
+  visibleTexts = computed(() => {
+    const all = this.textList();
+    const labelWidth = this.canvasWidth() / 10;
+    const wraps = Math.floor(Math.abs(this.scrollPosition() * -2000) / labelWidth);
+    const maxStart = Math.max(0, all.length - 10);
+    const start = wraps % (maxStart + 1);
+    return all.slice(start, start + 10);
+  });
 
   onScroll(event: Event) {
     const value = +(event.target as HTMLInputElement).value;
     this.scrollPosition.set(value);
-    this.offsetX.set((value * 10) % 200);
-    console.log(this.offsetX());
+    this.offsetX.set((value * -2000) % (this.canvasWidth() / 10));
   }
 } 
