@@ -20,7 +20,7 @@ export class App {
   protected readonly scene = signal<Scene>(this.createDefaultScene());
   
   // Signal for scroll range in rem units (total scrollable width in rem)
-  protected readonly scrollRangeRem = signal<number>(80); // 80rem = 5x canvas width (assuming 16rem canvas width)
+  protected readonly scrollRangeRem = signal<number>(200); // 80rem = 5x canvas width (assuming 16rem canvas width)
 
   /**
    * Create a default scene with column pattern
@@ -108,7 +108,7 @@ export class App {
     const circles: CircleScene[] = [];
     
     // Number of columns to span the full scrollable width
-    const numColumns = 16; // Enough columns to span the scrollable area
+    const numColumns = 48; // Enough columns to span the scrollable area
     const circlesPerColumn = 8; // Number of circles per column
     
     for (let col = 0; col < numColumns; col++) {
