@@ -39,22 +39,23 @@ export class App {
   }
 
   /**
-   * Create month labels with random rem offsets
+   * Create month labels with hardcoded random rem offsets
    */
   private createMonthLabels(): { text: string; xOffset: number }[] {
     const months = [
       'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25',
-      'Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dec 25', 'Jan 26'
+      'Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25'
     ];
+    
+    // Hardcoded random offsets from 0 to 200 (generated once, sorted from smallest to largest)
+    const hardcodedOffsets = [23, 41, 47, 78, 92, 134, 156, 167, 183, 198];
     
     const labels: { text: string; xOffset: number }[] = [];
     
     for (let i = 0; i < months.length; i++) {
-      // Generate random rem offset between -20 and 60 (more reasonable range)
-      const randomOffset = -20 + Math.random() * 80;
       labels.push({
         text: months[i],
-        xOffset: randomOffset
+        xOffset: hardcodedOffsets[i]
       });
     }
     

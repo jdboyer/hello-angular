@@ -6,6 +6,7 @@
   top: 0;
   pointer-events: none; /* allow clicks to pass through except for scrollbar */
   z-index: 20;
+  overflow: hidden; /* prevent horizontal scrollbar from off-screen labels */
 }
 .overlay-text-row {
   position: absolute;
@@ -36,7 +37,7 @@
   white-space: nowrap;
   font-weight: 500;
   text-shadow: 0 1px 2px #000;
-  rotate: 70deg;
+  rotate: -70deg;
   transform: translateY(0px);
   top: 20rem;
 }
