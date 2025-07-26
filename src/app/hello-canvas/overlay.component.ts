@@ -11,6 +11,12 @@ import { Component, Input, Output, signal, computed, EventEmitter, Signal } from
           [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX()"
         >{{ text }}</span>
       }
+      @for (label of visibleBottomLabels(); track $index) {
+        <span
+          class="bottom-axis-label"
+          [style.left.px]="convertRemToPixels(label.xOffset) - getBottomLabelsScrollOffset()"
+        >{{ label.text }}</span>
+      }
       <div 
         class="overlay-scrollbar"
         [style.--thumb-width]="getThumbWidth() + 'px'"
@@ -33,6 +39,7 @@ export class OverlayComponent {
   @Input({ required: true }) scrollRange!: Signal<number>;
   @Input({ required: true }) scrollPosition = signal(0);
   @Input({ required: true }) textList = signal<string[]>([]);
+  @Input({ required: true }) bottomLabelsList = signal<{ text: string; xOffset: number }[]>([]);
   @Input({ required: true }) offsetX = signal(0);
   @Input({ required: true }) canvasWidth = signal(500);
   @Input() textSpacing!: number; // Spacing in rem units
@@ -44,6 +51,25 @@ export class OverlayComponent {
 
   convertRemToPixels(rem: number): number {
     return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  }
+
+  getBottomLabelsScrollOffset(): number {
+    const canvasWidth = this.canvasWidth();
+    const scrollRange = this.scrollRange();
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const canvasWidthRem = canvasWidth / pxToRemRatio;
+    
+    // If scroll range is smaller than or equal to canvas width, no offset needed
+    if (scrollRange <= canvasWidthRem) {
+      return 0;
+    }
+    
+    // Calculate scroll distance based on canvas width vs scroll range
+    const totalScrollDistanceRem = scrollRange - canvasWidthRem;
+    const totalScrollDistancePixels = totalScrollDistanceRem * pxToRemRatio;
+    const currentScrollDistancePixels = this.scrollPosition() * totalScrollDistancePixels;
+    
+    return currentScrollDistancePixels;
   }
 
   getMaxVisibleItems(): number {
@@ -89,6 +115,15 @@ export class OverlayComponent {
     const maxStart = Math.max(0, all.length - maxVisibleItems);
     const start = Math.min(wraps, maxStart);
     return all.slice(start, start + maxVisibleItems);
+  });
+
+  visibleBottomLabels = computed(() => {
+    const all = this.bottomLabelsList();
+    console.log('Bottom labels list:', all);
+    
+    // For bottom labels, we want to show all labels and let them move with the scroll
+    // They have individual x offsets, so we don't need the same filtering logic as top labels
+    return all;
   });
 
   private isDragging = false;

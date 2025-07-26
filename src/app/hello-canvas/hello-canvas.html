@@ -1,6 +1,6 @@
 <div class="example-container">
   <div class="chart-container" style="position:relative;">
-    <app-overlay [scrollRange]="computedScrollRange" [scrollPosition]="scrollPosition" [textList]="textList" [offsetX]="offsetX" [canvasWidth]="canvasWidth" [textSpacing]="textSpacing()" (scrollPositionChange)="onScrollPositionChange($event)"></app-overlay>
+    <app-overlay [scrollRange]="computedScrollRange" [scrollPosition]="scrollPosition" [textList]="textList" [bottomLabelsList]="bottomLabelsList" [offsetX]="offsetX" [canvasWidth]="canvasWidth" [textSpacing]="textSpacing()" (scrollPositionChange)="onScrollPositionChange($event)"></app-overlay>
     <canvas #drawingCanvas class="my-canvas"></canvas>
   </div>
 </div>

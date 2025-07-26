@@ -19,6 +19,7 @@ export interface Scene {
   gridLines: number[];
   circles: CircleScene[]; // Array of circles to render
   labels: string[]; // Array of strings to use as labels
+  bottomLabels: { text: string; xOffset: number }[]; // Array of bottom labels with x offsets in rem
   spacing: number; // Spacing in rem units for both overlay text and circle columns
 }
 
@@ -54,6 +55,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   scrollPosition = signal(0);
   canvasWidth = signal(500);
   textList = signal<string[]>([]); // Will be populated from scene labels
+  bottomLabelsList = signal<{ text: string; xOffset: number }[]>([]); // Will be populated from scene bottomLabels
   offsetX = signal(0);
   
   // Input signal for scroll range in rem units (total scrollable width in rem)
@@ -77,6 +79,12 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   // Effect to watch for scene changes
   private sceneEffect = effect(() => {
     const currentScene = this.scene();
+    
+    // Always update labels and bottom labels, even if pipelines aren't ready
+    this.textList.set(currentScene.labels);
+    console.log('Setting bottom labels:', currentScene.bottomLabels);
+    this.bottomLabelsList.set(currentScene.bottomLabels);
+    
     if (this.multiCirclePipeline && this.gridPipeline) {
       // Update grid lines
       this.gridPipeline = new GridPipeline(this.device, this.presentationFormat, currentScene.gridLines);
@@ -84,9 +92,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
       // Update circles
       console.log(`Scene updated: ${currentScene.circles.length} circles`);
       this.multiCirclePipeline.setCircles(currentScene.circles);
-      
-      // Update labels
-      this.textList.set(currentScene.labels);
       
       // Redraw the scene
       this.drawScene();

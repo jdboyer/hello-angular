@@ -26,12 +26,38 @@ export class App {
    * Create a default scene with column pattern
    */
   private createDefaultScene(): Scene {
+    const monthLabels = this.createMonthLabels();
+    console.log('Created month labels:', monthLabels);
     return {
       gridLines: [0.2, 0.4, 0.6, 0.8],
       circles: this.createColumnCircles(8), // Default 8rem spacing
       labels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
+      bottomLabels: monthLabels,
       spacing: 8 // Default 8rem spacing
     };
+  }
+
+  /**
+   * Create month labels with random rem offsets
+   */
+  private createMonthLabels(): { text: string; xOffset: number }[] {
+    const months = [
+      'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25',
+      'Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dec 25', 'Jan 26'
+    ];
+    
+    const labels: { text: string; xOffset: number }[] = [];
+    
+    for (let i = 0; i < months.length; i++) {
+      // Generate random rem offset between -20 and 60 (more reasonable range)
+      const randomOffset = -20 + Math.random() * 80;
+      labels.push({
+        text: months[i],
+        xOffset: randomOffset
+      });
+    }
+    
+    return labels;
   }
 
   /**
@@ -116,7 +142,11 @@ export class App {
    * Switch to concentric rings pattern
    */
   createConcentricRingsScene(): void {
-    this.updateSceneCircles(this.createConcentricRingsCircles());
+    const currentScene = this.scene();
+    this.scene.set({
+      ...currentScene,
+      circles: this.createConcentricRingsCircles()
+    });
   }
 
   /**
@@ -124,7 +154,10 @@ export class App {
    */
   createColumnScene(): void {
     const currentScene = this.scene();
-    this.updateSceneCircles(this.createColumnCircles(currentScene.spacing));
+    this.scene.set({
+      ...currentScene,
+      circles: this.createColumnCircles(currentScene.spacing)
+    });
   }
 
   /**
@@ -159,16 +192,7 @@ export class App {
     }
   }
 
-  /**
-   * Update the scene with new circles
-   */
-  private updateSceneCircles(circles: CircleScene[]): void {
-    const currentScene = this.scene();
-    this.scene.set({
-      ...currentScene,
-      circles: circles
-    });
-  }
+
 
   /**
    * Helper to convert HSL to RGBA
