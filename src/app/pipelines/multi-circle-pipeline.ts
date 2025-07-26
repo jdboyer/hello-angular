@@ -67,7 +67,7 @@ export class MultiCirclePipeline {
 
     // Create uniform buffer for canvas width (in pixels)
     this.uniformBuffer = device.createBuffer({
-      size: 4, // 1 float: canvas width
+      size: 8, // 2 floats: canvas width, aspect ratio
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -115,7 +115,7 @@ export class MultiCirclePipeline {
         };
 
         @group(0) @binding(0)
-        var<uniform> canvasWidth: f32;
+        var<uniform> uniforms: vec2f; // x: canvasWidth, y: aspectRatio
 
         @vertex
         fn main(
@@ -127,12 +127,17 @@ export class MultiCirclePipeline {
           @builtin(instance_index) instance_idx: u32
         ) -> VertexOutput {
             var output: VertexOutput;
+            let canvasWidth = uniforms.x;
+            let aspectRatio = uniforms.y;
             // Convert pixel x to NDC: x_ndc = (x_pixel / (canvasWidth / 2.0)) - 1.0
             let ndc_x = (instance_center.x / (canvasWidth / 2.0)) - 1.0;
-            // Scale the quad by the pixel radius and convert to NDC
+            // Convert pixel y to NDC: y_ndc = (y_pixel / (canvasHeight / 2.0)) - 1.0
+            let canvasHeight = canvasWidth / aspectRatio;
+            let ndc_y = (instance_center.y / (canvasHeight / 2.0)) - 1.0;
+            // Scale the quad by the pixel radius and convert to NDC, preserving aspect ratio
             let scaled = vec4f(
                 ndc_x + position.x * instance_radius / (canvasWidth / 2.0),
-                position.y * instance_radius / (canvasWidth / 2.0) + instance_center.y,
+                ndc_y + position.y * instance_radius / (canvasHeight / 2.0),
                 position.z,
                 position.w
             );
@@ -240,17 +245,26 @@ export class MultiCirclePipeline {
     const minX = -3;
     const maxX = 3;
     const rangeX = maxX - minX;
+    // Convert normalized y to pixel y: y_normalized (-1 to 1) -> pixel_y
+    const minY = -1;
+    const maxY = 1;
+    const rangeY = maxY - minY;
+    const canvasHeightPixels = this.canvasWidthPixels / this.aspectRatio;
+    // Use a fixed reference width to maintain consistent horizontal spacing
+    const referenceWidth = 1000; // Fixed reference width in pixels
     const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
     for (let i = 0; i < this.circles.length; i++) {
       const circle = this.circles[i];
       const offset = i * 7;
-      // Map normalized x to pixel x
-      const basePixelX = ((circle.x - minX) / rangeX) * this.canvasWidthPixels;
+      // Map normalized x to pixel x using fixed reference width
+      const basePixelX = ((circle.x - minX) / rangeX) * referenceWidth;
       const adjustedX = basePixelX + this.scrollOffsetInPixels;
-      // Convert normalized radius to pixels (6 units span the full width)
-      const radiusPixels = (circle.radius / rangeX) * this.canvasWidthPixels;
+      // Map normalized y to pixel y
+      const pixelY = ((circle.y - minY) / rangeY) * canvasHeightPixels;
+      // Convert normalized radius to pixels using fixed reference width
+      const radiusPixels = (circle.radius / rangeX) * referenceWidth;
       instanceData[offset + 0] = adjustedX; // center.x in pixels
-      instanceData[offset + 1] = circle.y;
+      instanceData[offset + 1] = pixelY; // center.y in pixels
       instanceData[offset + 2] = radiusPixels; // radius in pixels
       instanceData[offset + 3] = circle.color[0];
       instanceData[offset + 4] = circle.color[1];
@@ -292,7 +306,7 @@ export class MultiCirclePipeline {
    * @param device GPUDevice
    */
   private updateUniforms(device: GPUDevice) {
-    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([this.canvasWidthPixels]));
+    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([this.canvasWidthPixels, this.aspectRatio]));
   }
 
   draw(passEncoder: GPURenderPassEncoder) {
