@@ -1,0 +1,237 @@
+import { CircleScene } from '../hello-canvas/hello-canvas';
+
+export class MultiCirclePipeline {
+  private pipeline!: GPURenderPipeline;
+  private vertexBuffer!: GPUBuffer;
+  private colorBuffer!: GPUBuffer;
+  private instanceBuffer!: GPUBuffer;
+  private bindGroup!: GPUBindGroup;
+  private aspectRatio: number = 1.0;
+  private circles: CircleScene[] = [];
+  private device!: GPUDevice;
+
+  constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
+    this.device = device;
+    
+    // --- Setup for Multiple Circles ---
+    // Define a small quad that will be instanced for each circle
+    const quadPositions = new Float32Array([
+      // Triangle 1
+      -0.5,  0.5, 0.0, 1.0, // Top-left
+      -0.5, -0.5, 0.0, 1.0, // Bottom-left
+       0.5, -0.5, 0.0, 1.0, // Bottom-right
+
+      // Triangle 2
+      -0.5,  0.5, 0.0, 1.0, // Top-left
+       0.5, -0.5, 0.0, 1.0, // Bottom-right
+       0.5,  0.5, 0.0, 1.0, // Top-right
+    ]);
+
+    const quadColors = new Float32Array([
+      // All vertices same color (will be overridden by instance data)
+      1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0,
+
+      1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0,
+    ]);
+
+    // Create GPU Buffers for Quad Vertex Data
+    this.vertexBuffer = device.createBuffer({
+      size: quadPositions.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.vertexBuffer.getMappedRange()).set(quadPositions);
+    this.vertexBuffer.unmap();
+
+    this.colorBuffer = device.createBuffer({
+      size: quadColors.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.colorBuffer.getMappedRange()).set(quadColors);
+    this.colorBuffer.unmap();
+
+    // Create instance buffer (will be populated later)
+    this.instanceBuffer = device.createBuffer({
+      size: 0, // Will be set when circles are added
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+
+    // Create Shader Modules for Multiple Circles with Instancing
+    const multiCircleVertexShaderModule = device.createShaderModule({
+      code: `
+        struct VertexOutput {
+            @builtin(position) position: vec4<f32>,
+            @location(0) uv: vec2f,
+            @location(1) color: vec4<f32>,
+        };
+
+        struct CircleInstance {
+            center: vec2f,
+            radius: f32,
+            color: vec4<f32>,
+        };
+
+        @vertex
+        fn main(
+          @location(0) position: vec4<f32>,
+          @location(1) color: vec4<f32>,
+          @location(2) instance_center: vec2f,
+          @location(3) instance_radius: f32,
+          @location(4) instance_color: vec4<f32>,
+          @builtin(instance_index) instance_idx: u32
+        ) -> VertexOutput {
+            var output: VertexOutput;
+            
+            // Scale the quad by the circle radius and position it at the circle center
+            let scaled = vec4f(
+                position.x * instance_radius * 2.0 + instance_center.x,
+                position.y * instance_radius * 2.0 + instance_center.y,
+                position.z,
+                position.w
+            );
+            
+            output.uv = position.xy * 2.0; // UV coordinates for the SDF
+            output.position = scaled;
+            output.color = instance_color;
+            return output;
+        }
+      `,
+    });
+
+    const multiCircleFragmentShaderModule = device.createShaderModule({
+      code: `
+        struct FragmentInput {
+            @location(1) color: vec4<f32>,
+        };
+
+        fn sdCircle(p: vec2f, r: f32) -> f32 {
+            return length(p) - r;
+        }
+
+        @fragment
+        fn main(
+          @location(0) uv: vec2f,
+          input: FragmentInput
+        ) -> @location(0) vec4<f32> {
+            // UV coordinates are in the circle's local space
+            let p = uv;
+            let d = sdCircle(p, 1.0); // Use unit circle since we scaled in vertex shader
+            let alpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
+            return vec4f(input.color.rgb, input.color.a * alpha);
+        }
+      `,
+    });
+
+    // Create Render Pipeline for Multiple Circles with Instancing
+    this.pipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex: {
+        module: multiCircleVertexShaderModule,
+        entryPoint: 'main',
+        buffers: [
+          { // Buffer for positions
+            arrayStride: 4 * 4,
+            attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x4' }],
+          },
+          { // Buffer for colors (not used, but required)
+            arrayStride: 4 * 4,
+            attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x4' }],
+          },
+          { // Instance buffer for circle data
+            arrayStride: 7 * 4, // 2 floats (center) + 1 float (radius) + 4 floats (color)
+            stepMode: 'instance',
+            attributes: [
+              { shaderLocation: 2, offset: 0, format: 'float32x2' }, // center
+              { shaderLocation: 3, offset: 8, format: 'float32' },   // radius
+              { shaderLocation: 4, offset: 12, format: 'float32x4' }, // color
+            ],
+          },
+        ],
+      },
+      primitive: {
+        topology: 'triangle-list',
+      },
+      fragment: {
+        module: multiCircleFragmentShaderModule,
+        entryPoint: 'main',
+        targets: [
+          {
+            format: presentationFormat,
+            blend: {
+              color: {
+                srcFactor: 'src-alpha',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
+              alpha: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  /**
+   * Set the circles to render
+   * @param circles Array of circle descriptions
+   */
+  setCircles(circles: CircleScene[]) {
+    this.circles = circles;
+    
+    // Create instance data
+    const instanceData = new Float32Array(circles.length * 7); // 7 floats per instance
+    for (let i = 0; i < circles.length; i++) {
+      const circle = circles[i];
+      const offset = i * 7;
+      instanceData[offset + 0] = circle.x;     // center.x
+      instanceData[offset + 1] = circle.y;     // center.y
+      instanceData[offset + 2] = circle.radius; // radius
+      instanceData[offset + 3] = circle.color[0]; // color.r
+      instanceData[offset + 4] = circle.color[1]; // color.g
+      instanceData[offset + 5] = circle.color[2]; // color.b
+      instanceData[offset + 6] = circle.color[3]; // color.a
+    }
+    
+    // Update instance buffer
+    this.instanceBuffer.destroy();
+    this.instanceBuffer = this.device.createBuffer({
+      size: instanceData.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.device.queue.writeBuffer(this.instanceBuffer, 0, instanceData);
+  }
+
+  /**
+   * Call this before draw() to update the aspect ratio dynamically.
+   * @param device GPUDevice
+   * @param aspectRatio number (canvas width / height)
+   */
+  updateAspectRatio(device: GPUDevice, aspectRatio: number) {
+    this.aspectRatio = aspectRatio;
+  }
+
+  draw(passEncoder: GPURenderPassEncoder) {
+    if (this.circles.length === 0) return;
+    
+    passEncoder.setPipeline(this.pipeline);
+    passEncoder.setVertexBuffer(0, this.vertexBuffer);
+    passEncoder.setVertexBuffer(1, this.colorBuffer);
+    passEncoder.setVertexBuffer(2, this.instanceBuffer);
+    passEncoder.draw(6, this.circles.length); // 6 vertices per quad, number of instances
+  }
+
+  destroy() {
+    if (this.vertexBuffer) { this.vertexBuffer.destroy(); }
+    if (this.colorBuffer) { this.colorBuffer.destroy(); }
+    if (this.instanceBuffer) { this.instanceBuffer.destroy(); }
+  }
+} 

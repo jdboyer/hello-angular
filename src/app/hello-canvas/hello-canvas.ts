@@ -3,9 +3,17 @@ import { RectanglePipeline } from '../pipelines/rectangle-pipeline';
 import { RoundedRectanglePipeline } from '../pipelines/rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from '../pipelines/textured-rectangle-pipeline';
 import { CirclePipeline } from '../pipelines/circle-pipeline';
+import { MultiCirclePipeline } from '../pipelines/multi-circle-pipeline';
 import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
+
+export interface CircleScene {
+  x: number;        // X position (normalized -1 to 1)
+  y: number;        // Y position (normalized -1 to 1)
+  radius: number;   // Radius (normalized)
+  color: [number, number, number, number]; // RGBA values
+}
 
 export interface Scene {
   topLabels: string[];
@@ -16,6 +24,7 @@ export interface Scene {
   gridLinesColor: string;
   gridLinesWidth: number;
   gridLinesOpacity: number;
+  circles: CircleScene[]; // Array of circles to render
 }
 
 @Component({
@@ -39,6 +48,7 @@ export class HelloCanvas implements AfterViewInit {
   private roundedRectanglePipeline!: RoundedRectanglePipeline;
   private texturedRectanglePipeline!: TexturedRectanglePipeline;
   private circlePipeline!: CirclePipeline;
+  private multiCirclePipeline!: MultiCirclePipeline;
   private gridPipeline!: GridPipeline;
 
   scrollRange = signal(100);
@@ -69,6 +79,128 @@ export class HelloCanvas implements AfterViewInit {
     'Overlay Text 21',
   ].reverse());
   offsetX = signal(0);
+
+  /**
+   * Generate a scene with many small circles at various positions
+   */
+  private generateCircleScene(): CircleScene[] {
+    const circles: CircleScene[] = [];
+    
+    // Generate a grid of circles
+    for (let i = 0; i < 20; i++) {
+      for (let j = 0; j < 15; j++) {
+        const x = (i / 19) * 2 - 1; // Map 0-19 to -1 to 1
+        const y = (j / 14) * 2 - 1; // Map 0-14 to -1 to 1
+        
+        // Vary colors based on position
+        const r = (i / 19) * 0.8 + 0.2;
+        const g = (j / 14) * 0.8 + 0.2;
+        const b = 0.5;
+        const a = 0.7;
+        
+        circles.push({
+          x: x,
+          y: y,
+          radius: 0.02 + Math.random() * 0.03, // Random radius between 0.02 and 0.05
+          color: [r, g, b, a]
+        });
+      }
+    }
+    
+    // Add some larger accent circles
+    circles.push(
+      { x: -0.8, y: 0.8, radius: 0.08, color: [1.0, 0.0, 0.0, 0.9] }, // Red circle top-left
+      { x: 0.8, y: 0.8, radius: 0.08, color: [0.0, 1.0, 0.0, 0.9] },  // Green circle top-right
+      { x: -0.8, y: -0.8, radius: 0.08, color: [0.0, 0.0, 1.0, 0.9] }, // Blue circle bottom-left
+      { x: 0.8, y: -0.8, radius: 0.08, color: [1.0, 1.0, 0.0, 0.9] },  // Yellow circle bottom-right
+      { x: 0.0, y: 0.0, radius: 0.12, color: [1.0, 0.0, 1.0, 0.8] }   // Magenta circle center
+    );
+    
+    return circles;
+  }
+
+  /**
+   * Update the scene with new circle data
+   * @param circles New array of circles to render
+   */
+  updateScene(circles: CircleScene[]) {
+    this.scene.circles = circles;
+    this.multiCirclePipeline.setCircles(circles);
+    this.drawScene(); // Redraw with new scene
+  }
+
+  /**
+   * Create a spiral pattern of circles
+   */
+  createSpiralScene(): CircleScene[] {
+    const circles: CircleScene[] = [];
+    const numCircles = 100;
+    
+    for (let i = 0; i < numCircles; i++) {
+      const angle = (i / numCircles) * 8 * Math.PI; // 4 full rotations
+      const radius = (i / numCircles) * 0.8; // Spiral from center to edge
+      
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      
+      // Color gradient from blue to red
+      const t = i / numCircles;
+      const r = t;
+      const g = 0.2;
+      const b = 1.0 - t;
+      const a = 0.8;
+      
+      circles.push({
+        x: x,
+        y: y,
+        radius: 0.02 + (1 - t) * 0.03, // Larger circles at center
+        color: [r, g, b, a]
+      });
+    }
+    
+    return circles;
+  }
+
+  /**
+   * Create a random scatter of circles
+   */
+  createRandomScene(): CircleScene[] {
+    const circles: CircleScene[] = [];
+    const numCircles = 200;
+    
+    for (let i = 0; i < numCircles; i++) {
+      const x = (Math.random() - 0.5) * 2; // -1 to 1
+      const y = (Math.random() - 0.5) * 2; // -1 to 1
+      
+      // Random colors
+      const r = Math.random();
+      const g = Math.random();
+      const b = Math.random();
+      const a = 0.6 + Math.random() * 0.4; // 0.6 to 1.0
+      
+      circles.push({
+        x: x,
+        y: y,
+        radius: 0.01 + Math.random() * 0.04, // 0.01 to 0.05
+        color: [r, g, b, a]
+      });
+    }
+    
+    return circles;
+  }
+
+  // Scene description for rendering multiple circles
+  private scene: Scene = {
+    topLabels: [],
+    topLabelsOffset: [],
+    bottomLabels: [],
+    bottomLabelsOffset: [],
+    gridLines: [],
+    gridLinesColor: '#ffffff',
+    gridLinesWidth: 1,
+    gridLinesOpacity: 0.3,
+    circles: [] // Will be populated in ngAfterViewInit
+  };
 
   @HostListener('window:resize', ['$event'])
   onResize(event: Event) {
@@ -149,6 +281,11 @@ export class HelloCanvas implements AfterViewInit {
     this.roundedRectanglePipeline = new RoundedRectanglePipeline(this.device, this.presentationFormat)
     this.texturedRectanglePipeline = new TexturedRectanglePipeline(this.device, this.presentationFormat)
     this.circlePipeline = new CirclePipeline(this.device, this.presentationFormat)
+    this.multiCirclePipeline = new MultiCirclePipeline(this.device, this.presentationFormat)
+    
+    // Generate the circle scene
+    this.scene.circles = this.generateCircleScene();
+    this.multiCirclePipeline.setCircles(this.scene.circles)
     //this.setupCircles();
     // textured squares for symbols
     // circles 
@@ -169,6 +306,7 @@ export class HelloCanvas implements AfterViewInit {
     this.roundedRectanglePipeline.destroy()
     this.texturedRectanglePipeline.destroy()
     this.circlePipeline.destroy()
+    this.multiCirclePipeline.destroy()
     this.gridPipeline.destroy();
   }
   private drawScene(): void {
@@ -214,8 +352,10 @@ export class HelloCanvas implements AfterViewInit {
     //this.roundedRectanglePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
     //this.roundedRectanglePipeline.draw(passEncoder);
     //this.texturedRectanglePipeline.draw(passEncoder);
-    this.circlePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
-    this.circlePipeline.draw(passEncoder);
+    //this.circlePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
+    //this.circlePipeline.draw(passEncoder);
+    this.multiCirclePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
+    this.multiCirclePipeline.draw(passEncoder);
 
     // End the render pass
     passEncoder.end();
