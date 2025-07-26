@@ -18,6 +18,9 @@ export class App {
 
   // Create a signal for the scene
   protected readonly scene = signal<Scene>(this.createDefaultScene());
+  
+  // Signal for scroll range multiplier (1 = no scroll, 10 = thumb is 1/10 of track)
+  protected readonly scrollRangeMultiplier = signal<number>(5);
 
   /**
    * Create a default scene with column pattern
@@ -143,6 +146,16 @@ export class App {
     const newSpacing = parseFloat(event.target.value);
     if (!isNaN(newSpacing) && newSpacing > 0) {
       this.updateSpacing(newSpacing);
+    }
+  }
+
+  /**
+   * Handle scroll range input change
+   */
+  onScrollRangeChange(event: any): void {
+    const newScrollRange = parseFloat(event.target.value);
+    if (!isNaN(newScrollRange) && newScrollRange >= 1) {
+      this.scrollRangeMultiplier.set(newScrollRange);
     }
   }
 

@@ -55,7 +55,7 @@
 .overlay-scrollbar::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 60px;
+  width: var(--thumb-width, 60px);
   height: 8px;
   background: #888;
   border-radius: 8px;

@@ -56,8 +56,21 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   textList = signal<string[]>([]); // Will be populated from scene labels
   offsetX = signal(0);
   
+  // Input signal for scroll range multiplier (1 = no scroll, 10 = thumb is 1/10 of track)
+  scrollRangeMultiplier = input<number>(1);
+  
   // Computed signal for text spacing from scene
   textSpacing = computed(() => this.scene().spacing);
+  
+  // Computed signal for scroll range based on multiplier
+  computedScrollRange = computed(() => {
+    const multiplier = this.scrollRangeMultiplier();
+    // Calculate how many items can be scrolled
+    // If multiplier is 1, no scroll (all items visible)
+    // If multiplier is 10, scroll through 10x more items than visible
+    const maxVisibleItems = this.getMaxVisibleItems();
+    return Math.max(1, Math.floor(maxVisibleItems * multiplier));
+  });
 
   // Effect to watch for scene changes
   private sceneEffect = effect(() => {
@@ -77,6 +90,22 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
       this.drawScene();
     }
   });
+
+  /**
+   * Calculate the maximum number of visible items based on canvas width and text spacing
+   */
+  private getMaxVisibleItems(): number {
+    const canvasWidth = this.canvasWidth();
+    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
+    return Math.max(1, Math.floor(canvasWidth / spacingInPixels));
+  }
+
+  /**
+   * Convert rem to pixels
+   */
+  private convertRemToPixels(rem: number): number {
+    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  }
 
   /**
    * Handle scroll position changes from the overlay component
@@ -260,7 +289,12 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.multiCirclePipeline.updateCanvasDimensions(this.device, canvasWidthPixels, canvasHeightPixels);
     
     // Calculate scroll offset in pixels to match text movement
-    const scrollOffsetInPixels = this.scrollPosition() * -2000;
+    const canvasWidth = this.canvas.nativeElement.width;
+    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
+    const maxVisibleItems = this.getMaxVisibleItems();
+    const scrollRange = this.computedScrollRange();
+    const totalScrollDistance = (scrollRange - maxVisibleItems) * spacingInPixels;
+    const scrollOffsetInPixels = -this.scrollPosition() * totalScrollDistance;
     this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels);
     
     this.multiCirclePipeline.draw(passEncoder);
