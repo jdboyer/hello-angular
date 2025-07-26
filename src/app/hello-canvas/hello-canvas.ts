@@ -7,6 +7,17 @@ import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
 
+export interface Scene {
+  topLabels: string[];
+  topLabelsOffset: number[];
+  bottomLabels: string[];
+  bottomLabelsOffset: number[];
+  gridLines: number[];
+  gridLinesColor: string;
+  gridLinesWidth: number;
+  gridLinesOpacity: number;
+}
+
 @Component({
   selector: 'app-hello-canvas',
   imports: [OverlayComponent],
@@ -33,6 +44,7 @@ export class HelloCanvas implements AfterViewInit {
   scrollRange = signal(100);
   scrollPosition = signal(0);
   canvasWidth = signal(500);
+  textSpacing = signal(8); // Default 2rem spacing
   textList = signal<string[]>([
     'Overlay Text 1', 
     'Overlay Text 2', 
@@ -77,6 +89,7 @@ export class HelloCanvas implements AfterViewInit {
     canvasEl.width = parent!.offsetWidth;
     canvasEl.style.width = canvasEl.width.toString() + "px"
     canvasEl.style.height = canvasEl.height.toString() + "px"
+    this.canvasWidth.set(canvasEl.width);
 
     // 1. Request WebGPU Adapter and Device
     try {
@@ -342,6 +355,7 @@ export class HelloCanvas implements AfterViewInit {
       canvasEl.height = parent.offsetHeight;
       canvasEl.style.width = canvasEl.width.toString() + "px"
       canvasEl.style.height = canvasEl.height.toString() + "px"
+      this.canvasWidth.set(canvasEl.width);
       //this.context.scale(this.convertRemToPixels(1), this.convertRemToPixels(1))
       this.drawScene(); // Call the method to draw the triangle
       // Restore drawing after resizing
