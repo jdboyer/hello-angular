@@ -5,6 +5,7 @@ export class MultiCirclePipeline {
   private vertexBuffer!: GPUBuffer;
   private colorBuffer!: GPUBuffer;
   private instanceBuffer!: GPUBuffer;
+  private uniformBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
   private aspectRatio: number = 1.0;
   private circles: CircleScene[] = [];
@@ -61,6 +62,40 @@ export class MultiCirclePipeline {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
+    // Create uniform buffer for aspect ratio
+    this.uniformBuffer = device.createBuffer({
+      size: 4, // 1 float for aspect ratio
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    // Create bind group layout
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: { type: "uniform" },
+        },
+      ],
+    });
+
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
+    });
+
+    // Create bind group
+    this.bindGroup = device.createBindGroup({
+      layout: bindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: this.uniformBuffer,
+          },
+        },
+      ],
+    });
+
     // Create Shader Modules for Multiple Circles with Instancing
     const multiCircleVertexShaderModule = device.createShaderModule({
       code: `
@@ -76,6 +111,9 @@ export class MultiCirclePipeline {
             color: vec4<f32>,
         };
 
+        @group(0) @binding(0)
+        var<uniform> uniforms: f32; // aspectRatio
+
         @vertex
         fn main(
           @location(0) position: vec4<f32>,
@@ -88,8 +126,9 @@ export class MultiCirclePipeline {
             var output: VertexOutput;
             
             // Scale the quad by the circle radius and position it at the circle center
+            // Apply aspect ratio correction to maintain circular shape
             let scaled = vec4f(
-                position.x * instance_radius * 2.0 + instance_center.x,
+                (position.x * instance_radius * 2.0 + instance_center.x) / uniforms,
                 position.y * instance_radius * 2.0 + instance_center.y,
                 position.z,
                 position.w
@@ -129,7 +168,7 @@ export class MultiCirclePipeline {
 
     // Create Render Pipeline for Multiple Circles with Instancing
     this.pipeline = device.createRenderPipeline({
-      layout: 'auto',
+      layout: pipelineLayout,
       vertex: {
         module: multiCircleVertexShaderModule,
         entryPoint: 'main',
@@ -217,6 +256,8 @@ export class MultiCirclePipeline {
    */
   updateAspectRatio(device: GPUDevice, aspectRatio: number) {
     this.aspectRatio = aspectRatio;
+    // Update the uniform buffer with the new aspect ratio
+    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([aspectRatio]));
   }
 
   draw(passEncoder: GPURenderPassEncoder) {
@@ -226,6 +267,7 @@ export class MultiCirclePipeline {
     passEncoder.setVertexBuffer(0, this.vertexBuffer);
     passEncoder.setVertexBuffer(1, this.colorBuffer);
     passEncoder.setVertexBuffer(2, this.instanceBuffer);
+    passEncoder.setBindGroup(0, this.bindGroup);
     passEncoder.draw(6, this.circles.length); // 6 vertices per quad, number of instances
   }
 
@@ -233,5 +275,6 @@ export class MultiCirclePipeline {
     if (this.vertexBuffer) { this.vertexBuffer.destroy(); }
     if (this.colorBuffer) { this.colorBuffer.destroy(); }
     if (this.instanceBuffer) { this.instanceBuffer.destroy(); }
+    if (this.uniformBuffer) { this.uniformBuffer.destroy(); }
   }
 } 
