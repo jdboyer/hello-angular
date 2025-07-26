@@ -21,7 +21,8 @@ export class App {
   private createDefaultScene(): Scene {
     return {
       gridLines: [0.2, 0.4, 0.6, 0.8],
-      circles: this.createConcentricRingsScene()
+      circles: this.createConcentricRingsScene(),
+      labels: Array.from({length: 100}, (_, i) => (i + 1).toString())
     };
   }
 

@@ -18,6 +18,7 @@ export interface CircleScene {
 export interface Scene {
   gridLines: number[];
   circles: CircleScene[]; // Array of circles to render
+  labels: string[]; // Array of strings to use as labels
 }
 
 @Component({
@@ -52,9 +53,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   scrollPosition = signal(0);
   canvasWidth = signal(500);
   textSpacing = signal(8); // Default 8rem spacing
-  textList = signal<string[]>([
-    ...Array.from({length: 100}, (_, i) => (i + 1).toString())
-  ]);
+  textList = signal<string[]>([]); // Will be populated from scene labels
   offsetX = signal(0);
 
   // Effect to watch for scene changes
@@ -67,6 +66,9 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
       // Update circles
       console.log(`Scene updated: ${currentScene.circles.length} circles`);
       this.multiCirclePipeline.setCircles(currentScene.circles);
+      
+      // Update labels
+      this.textList.set(currentScene.labels);
       
       // Redraw the scene
       this.drawScene();
@@ -177,6 +179,10 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     // Set the circles from the scene
     console.log(`Setting ${currentScene.circles.length} circles from scene. First: (${currentScene.circles[0].x}, ${currentScene.circles[0].y}), Last: (${currentScene.circles[currentScene.circles.length-1].x}, ${currentScene.circles[currentScene.circles.length-1].y})`);
     this.multiCirclePipeline.setCircles(currentScene.circles)
+    
+    // Set the labels from the scene
+    this.textList.set(currentScene.labels);
+    console.log(`Setting ${currentScene.labels.length} labels from scene: ${currentScene.labels.slice(0, 5).join(', ')}...`);
     
     //this.setupCircles();
     // textured squares for symbols
