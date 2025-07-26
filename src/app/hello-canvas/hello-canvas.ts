@@ -119,6 +119,47 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Adjust scroll position when canvas is resized to maintain the same visual offset
+   */
+  private adjustScrollPositionForResize(oldCanvasWidth: number): void {
+    const newCanvasWidth = this.canvas.nativeElement.width;
+    const scrollRange = this.computedScrollRange();
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const oldCanvasWidthRem = oldCanvasWidth / pxToRemRatio;
+    const newCanvasWidthRem = newCanvasWidth / pxToRemRatio;
+    
+    // If scroll range is smaller than or equal to both old and new canvas widths, no adjustment needed
+    if (scrollRange <= oldCanvasWidthRem && scrollRange <= newCanvasWidthRem) {
+      return;
+    }
+    
+    // If scroll range is smaller than or equal to new canvas width but was larger than old, reset to 0
+    if (scrollRange <= newCanvasWidthRem && scrollRange > oldCanvasWidthRem) {
+      this.scrollPosition.set(0);
+      return;
+    }
+    
+    // Calculate the current visual offset in rem
+    const currentScrollPosition = this.scrollPosition();
+    let currentVisualOffsetRem = 0;
+    
+    if (scrollRange > oldCanvasWidthRem) {
+      const oldTotalScrollDistanceRem = scrollRange - oldCanvasWidthRem;
+      currentVisualOffsetRem = currentScrollPosition * oldTotalScrollDistanceRem;
+    }
+    
+    // Calculate the new scroll position needed to maintain the same visual offset
+    if (scrollRange > newCanvasWidthRem) {
+      const newTotalScrollDistanceRem = scrollRange - newCanvasWidthRem;
+      const newScrollPosition = currentVisualOffsetRem / newTotalScrollDistanceRem;
+      this.scrollPosition.set(Math.max(0, Math.min(1, newScrollPosition)));
+    } else {
+      // If new canvas is wide enough to show everything, reset to 0
+      this.scrollPosition.set(0);
+    }
+  }
+
+  /**
    * Handle scroll position changes from the overlay component
    * @param newPosition New scroll position (0-1)
    */
@@ -139,7 +180,10 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
 
   @HostListener('window:resize', ['$event'])
   onResize(event: Event) {
-    this.resizeCanvas();
+    const oldCanvasWidth = this.canvasWidth();
+    this.resizeCanvasWithoutDraw();
+    this.adjustScrollPositionForResize(oldCanvasWidth);
+    this.drawScene(); // Draw after scroll position is adjusted
   }
 
     // Lifecycle hook: Called after Angular has initialized all view components
@@ -440,27 +484,22 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     //});
   //}
 
-  private resizeCanvas(): void {
+  private resizeCanvasWithoutDraw(): void {
     const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
     const parent = canvasEl.parentElement;
 
     if (parent && this.context) {
-      // Store current drawing before resizing
-      //const imageData = this.context.getImageData(0, 0, canvasEl.width, canvasEl.height);
-
-      // Update canvas dimensions
-
-      //this.context.reset();
-      //this.context.scale(1, 1);
+      // Update canvas dimensions without drawing
       canvasEl.width = parent.offsetWidth;
       canvasEl.height = parent.offsetHeight;
       canvasEl.style.width = canvasEl.width.toString() + "px"
       canvasEl.style.height = canvasEl.height.toString() + "px"
       this.canvasWidth.set(canvasEl.width);
-      //this.context.scale(this.convertRemToPixels(1), this.convertRemToPixels(1))
-      this.drawScene(); // Call the method to draw the triangle
-      // Restore drawing after resizing
-      //this.context.putImageData(imageData, 0, 0);
     }
+  }
+
+  private resizeCanvas(): void {
+    this.resizeCanvasWithoutDraw();
+    this.drawScene(); // Call the method to draw the triangle
   }
 }
