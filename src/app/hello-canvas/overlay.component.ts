@@ -51,12 +51,16 @@ export class OverlayComponent {
   getThumbWidth(): number {
     const canvasWidth = this.canvasWidth();
     const scrollRange = this.scrollRange();
-    const maxVisibleItems = this.getMaxVisibleItems();
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const canvasWidthRem = canvasWidth / pxToRemRatio;
     
-    // Calculate thumb width as a percentage of the track
-    // If scrollRange equals maxVisibleItems, thumb should be 100% of track
-    // If scrollRange is 10x maxVisibleItems, thumb should be 10% of track
-    const thumbPercentage = maxVisibleItems / scrollRange;
+    // If scroll range is smaller than or equal to canvas width in rem, no scrolling needed
+    if (scrollRange <= canvasWidthRem) {
+      return canvasWidth; // Thumb takes full width of track
+    }
+    
+    // Calculate thumb width as a percentage of the track based on canvas width vs scroll range
+    const thumbPercentage = canvasWidthRem / scrollRange;
     const minThumbWidth = 20; // Minimum thumb width in pixels
     const maxThumbWidth = canvasWidth * 0.8; // Maximum thumb width (80% of canvas)
     
@@ -69,11 +73,20 @@ export class OverlayComponent {
     const canvasWidth = this.canvasWidth();
     const spacingInPixels = this.convertRemToPixels(this.textSpacing);
     const maxVisibleItems = Math.max(1, Math.floor(canvasWidth / spacingInPixels));
-    const labelWidth = spacingInPixels;
     const scrollRange = this.scrollRange();
-    const totalScrollDistance = (scrollRange - maxVisibleItems) * labelWidth;
-    const currentScrollDistance = this.scrollPosition() * totalScrollDistance;
-    const wraps = Math.floor(Math.abs(currentScrollDistance) / labelWidth);
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const canvasWidthRem = canvasWidth / pxToRemRatio;
+    
+    // If scroll range is smaller than or equal to canvas width, show all items from start
+    if (scrollRange <= canvasWidthRem) {
+      return all.slice(0, maxVisibleItems);
+    }
+    
+    // Calculate scroll distance based on canvas width vs scroll range
+    const totalScrollDistanceRem = scrollRange - canvasWidthRem;
+    const totalScrollDistancePixels = totalScrollDistanceRem * pxToRemRatio;
+    const currentScrollDistancePixels = this.scrollPosition() * totalScrollDistancePixels;
+    const wraps = Math.floor(Math.abs(currentScrollDistancePixels) / spacingInPixels);
     const maxStart = Math.max(0, all.length - maxVisibleItems);
     const start = Math.min(wraps, maxStart);
     return all.slice(start, start + maxVisibleItems);
@@ -86,10 +99,20 @@ export class OverlayComponent {
     
     const canvasWidth = this.canvasWidth();
     const spacingInPixels = this.convertRemToPixels(this.textSpacing);
-    const maxVisibleItems = Math.max(1, Math.floor(canvasWidth / spacingInPixels));
     const scrollRange = this.scrollRange();
-    const totalScrollDistance = (scrollRange - maxVisibleItems) * spacingInPixels;
-    const currentScrollDistance = value * totalScrollDistance;
-    this.offsetX.set(-currentScrollDistance % spacingInPixels);
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const canvasWidthRem = canvasWidth / pxToRemRatio;
+    
+    // If scroll range is smaller than or equal to canvas width, no offset needed
+    if (scrollRange <= canvasWidthRem) {
+      this.offsetX.set(0);
+      return;
+    }
+    
+    // Calculate scroll distance based on canvas width vs scroll range
+    const totalScrollDistanceRem = scrollRange - canvasWidthRem;
+    const totalScrollDistancePixels = totalScrollDistanceRem * pxToRemRatio;
+    const currentScrollDistancePixels = value * totalScrollDistancePixels;
+    this.offsetX.set(-currentScrollDistancePixels % spacingInPixels);
   }
 } 

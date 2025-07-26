@@ -16,18 +16,18 @@
   </div>
   
   <div class="scroll-range-control">
-    <label for="scroll-range-input">Scroll Range:</label>
+    <label for="scroll-range-input">Scroll Range (rem):</label>
     <input 
       id="scroll-range-input"
       type="number" 
-      [value]="scrollRangeMultiplier()" 
+      [value]="scrollRangeRem()" 
       (input)="onScrollRangeChange($event)"
       min="1" 
-      max="20" 
-      step="0.5"
+      max="200" 
+      step="1"
     />
   </div>
 </div>
 
-<app-hello-canvas [scene]="scene()" [scrollRangeMultiplier]="scrollRangeMultiplier()" />
+<app-hello-canvas [scene]="scene()" [scrollRangeRem]="scrollRangeRem()" />
 <router-outlet />

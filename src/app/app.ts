@@ -19,8 +19,8 @@ export class App {
   // Create a signal for the scene
   protected readonly scene = signal<Scene>(this.createDefaultScene());
   
-  // Signal for scroll range multiplier (1 = no scroll, 10 = thumb is 1/10 of track)
-  protected readonly scrollRangeMultiplier = signal<number>(5);
+  // Signal for scroll range in rem units (total scrollable width in rem)
+  protected readonly scrollRangeRem = signal<number>(80); // 80rem = 5x canvas width (assuming 16rem canvas width)
 
   /**
    * Create a default scene with column pattern
@@ -154,8 +154,8 @@ export class App {
    */
   onScrollRangeChange(event: any): void {
     const newScrollRange = parseFloat(event.target.value);
-    if (!isNaN(newScrollRange) && newScrollRange >= 1) {
-      this.scrollRangeMultiplier.set(newScrollRange);
+    if (!isNaN(newScrollRange) && newScrollRange > 0) {
+      this.scrollRangeRem.set(newScrollRange);
     }
   }
 

@@ -56,20 +56,22 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   textList = signal<string[]>([]); // Will be populated from scene labels
   offsetX = signal(0);
   
-  // Input signal for scroll range multiplier (1 = no scroll, 10 = thumb is 1/10 of track)
-  scrollRangeMultiplier = input<number>(1);
+  // Input signal for scroll range in rem units (total scrollable width in rem)
+  scrollRangeRem = input<number>(80);
   
   // Computed signal for text spacing from scene
   textSpacing = computed(() => this.scene().spacing);
   
-  // Computed signal for scroll range based on multiplier
+  // Computed signal for scroll range based on rem value
   computedScrollRange = computed(() => {
-    const multiplier = this.scrollRangeMultiplier();
-    // Calculate how many items can be scrolled
-    // If multiplier is 1, no scroll (all items visible)
-    // If multiplier is 10, scroll through 10x more items than visible
-    const maxVisibleItems = this.getMaxVisibleItems();
-    return Math.max(1, Math.floor(maxVisibleItems * multiplier));
+    const scrollRangeRem = this.scrollRangeRem();
+    const canvasWidthPixels = this.canvasWidth();
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const canvasWidthRem = canvasWidthPixels / pxToRemRatio;
+    
+    // The scroll range is simply the specified rem value
+    // No need to convert to number of items - it's just the total scrollable width in rem
+    return scrollRangeRem;
   });
 
   // Effect to watch for scene changes
@@ -98,6 +100,15 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     const canvasWidth = this.canvasWidth();
     const spacingInPixels = this.convertRemToPixels(this.textSpacing());
     return Math.max(1, Math.floor(canvasWidth / spacingInPixels));
+  }
+
+  /**
+   * Calculate the continuous number of visible items (for smooth calculations)
+   */
+  private getContinuousVisibleItems(): number {
+    const canvasWidth = this.canvasWidth();
+    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
+    return canvasWidth / spacingInPixels;
   }
 
   /**
@@ -290,12 +301,20 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     
     // Calculate scroll offset in pixels to match text movement
     const canvasWidth = this.canvas.nativeElement.width;
-    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
-    const maxVisibleItems = this.getMaxVisibleItems();
     const scrollRange = this.computedScrollRange();
-    const totalScrollDistance = (scrollRange - maxVisibleItems) * spacingInPixels;
-    const scrollOffsetInPixels = -this.scrollPosition() * totalScrollDistance;
-    this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels);
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const canvasWidthRem = canvasWidth / pxToRemRatio;
+    
+    // If scroll range is smaller than or equal to canvas width, no scroll offset needed
+    if (scrollRange <= canvasWidthRem) {
+      this.multiCirclePipeline.updateScrollOffset(this.device, 0);
+    } else {
+      // Calculate scroll distance based on canvas width vs scroll range
+      const totalScrollDistanceRem = scrollRange - canvasWidthRem;
+      const totalScrollDistancePixels = totalScrollDistanceRem * pxToRemRatio;
+      const scrollOffsetInPixels = -this.scrollPosition() * totalScrollDistancePixels;
+      this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels);
+    }
     
     this.multiCirclePipeline.draw(passEncoder);
 
