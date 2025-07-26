@@ -116,7 +116,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    * @param newPosition New scroll position (0-1)
    */
   onScrollPositionChange(newPosition: number) {
-    console.log(`Scroll position changed to: ${newPosition}`);
+    //console.log(`Scroll position changed to: ${newPosition}`);
     this.scrollPosition.set(newPosition);
     this.drawScene(); // Redraw with new scroll position
   }
