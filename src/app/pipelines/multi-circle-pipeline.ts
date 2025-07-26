@@ -122,17 +122,17 @@ export class MultiCirclePipeline {
           @location(0) position: vec4<f32>,
           @location(1) color: vec4<f32>,
           @location(2) instance_center: vec2f, // x in pixels
-          @location(3) instance_radius: f32,
+          @location(3) instance_radius: f32,   // radius in pixels
           @location(4) instance_color: vec4<f32>,
           @builtin(instance_index) instance_idx: u32
         ) -> VertexOutput {
             var output: VertexOutput;
             // Convert pixel x to NDC: x_ndc = (x_pixel / (canvasWidth / 2.0)) - 1.0
             let ndc_x = (instance_center.x / (canvasWidth / 2.0)) - 1.0;
-            // y stays normalized (-1 to 1)
+            // Scale the quad by the pixel radius and convert to NDC
             let scaled = vec4f(
-                ndc_x + position.x * instance_radius * 2.0 / (canvasWidth / 2.0),
-                position.y * instance_radius * 2.0 + instance_center.y,
+                ndc_x + position.x * instance_radius / (canvasWidth / 2.0),
+                position.y * instance_radius / (canvasWidth / 2.0) + instance_center.y,
                 position.z,
                 position.w
             );
@@ -247,10 +247,11 @@ export class MultiCirclePipeline {
       // Map normalized x to pixel x
       const basePixelX = ((circle.x - minX) / rangeX) * this.canvasWidthPixels;
       const adjustedX = basePixelX + this.scrollOffsetInPixels;
+      // Convert normalized radius to pixels (6 units span the full width)
+      const radiusPixels = (circle.radius / rangeX) * this.canvasWidthPixels;
       instanceData[offset + 0] = adjustedX; // center.x in pixels
-      // y stays normalized for now (could be mapped to pixels if needed)
       instanceData[offset + 1] = circle.y;
-      instanceData[offset + 2] = circle.radius; // radius (still normalized)
+      instanceData[offset + 2] = radiusPixels; // radius in pixels
       instanceData[offset + 3] = circle.color[0];
       instanceData[offset + 4] = circle.color[1];
       instanceData[offset + 5] = circle.color[2];
