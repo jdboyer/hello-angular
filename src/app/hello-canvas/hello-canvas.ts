@@ -16,14 +16,7 @@ export interface CircleScene {
 }
 
 export interface Scene {
-  topLabels: string[];
-  topLabelsOffset: number[];
-  bottomLabels: string[];
-  bottomLabelsOffset: number[];
   gridLines: number[];
-  gridLinesColor: string;
-  gridLinesWidth: number;
-  gridLinesOpacity: number;
   circles: CircleScene[]; // Array of circles to render
 }
 

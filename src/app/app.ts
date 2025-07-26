@@ -20,14 +20,7 @@ export class App {
    */
   private createDefaultScene(): Scene {
     return {
-      topLabels: [],
-      topLabelsOffset: [],
-      bottomLabels: [],
-      bottomLabelsOffset: [],
       gridLines: [0.2, 0.4, 0.6, 0.8],
-      gridLinesColor: '#ffffff',
-      gridLinesWidth: 1,
-      gridLinesOpacity: 0.3,
       circles: this.createConcentricRingsScene()
     };
   }
