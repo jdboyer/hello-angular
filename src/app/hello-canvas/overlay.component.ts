@@ -54,15 +54,10 @@ export class OverlayComponent {
     const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
     const canvasWidthRem = canvasWidth / pxToRemRatio;
     
-    // If scroll range is smaller than or equal to canvas width in rem, no scrolling needed
-    if (scrollRange <= canvasWidthRem) {
-      return canvasWidth; // Thumb takes full width of track
-    }
-    
     // Calculate thumb width as a percentage of the track based on canvas width vs scroll range
     const thumbPercentage = canvasWidthRem / scrollRange;
     const minThumbWidth = 20; // Minimum thumb width in pixels
-    const maxThumbWidth = canvasWidth * 0.8; // Maximum thumb width (80% of canvas)
+    const maxThumbWidth = canvasWidth; // Maximum thumb width (100% of canvas)
     
     const calculatedWidth = canvasWidth * thumbPercentage;
     return Math.max(minThumbWidth, Math.min(calculatedWidth, maxThumbWidth));
