@@ -56,28 +56,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   canvasWidth = signal(500);
   textSpacing = signal(8); // Default 2rem spacing
   textList = signal<string[]>([
-    'Overlay Text 1', 
-    'Overlay Text 2', 
-    'Overlay Text 3',
-    'Overlay Text 4',
-    'Overlay Text 5',
-    'Overlay Text 6',
-    'Overlay Text 7',
-    'Overlay Text 8',
-    'Overlay Text 9',
-    'Overlay Text 10',
-    'Overlay Text 11',
-    'Overlay Text 12',
-    'Overlay Text 13',
-    'Overlay Text 14',
-    'Overlay Text 15',
-    'Overlay Text 16',
-    'Overlay Text 17',
-    'Overlay Text 18',
-    'Overlay Text 19',
-    'Overlay Text 20',
-    'Overlay Text 21',
-  ].reverse());
+    ...Array.from({length: 100}, (_, i) => (i + 1).toString())
+  ]);
   offsetX = signal(0);
 
   /**

@@ -250,19 +250,19 @@ export class MultiCirclePipeline {
     const maxY = 1;
     const rangeY = maxY - minY;
     const canvasHeightPixels = this.canvasWidthPixels / this.aspectRatio;
-    // Use a fixed reference width to maintain consistent horizontal spacing
-    const referenceWidth = 1000; // Fixed reference width in pixels
+    // Use the same coordinate system as the overlay (-2000 offset)
+    const totalScrollRange = 2000; // Total scroll range in pixels
     const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
     for (let i = 0; i < this.circles.length; i++) {
       const circle = this.circles[i];
       const offset = i * 7;
-      // Map normalized x to pixel x using fixed reference width
-      const basePixelX = ((circle.x - minX) / rangeX) * referenceWidth;
+      // Map normalized x to pixel x using the same system as overlay
+      const basePixelX = ((circle.x - minX) / rangeX) * totalScrollRange;
       const adjustedX = basePixelX + this.scrollOffsetInPixels;
       // Map normalized y to pixel y
       const pixelY = ((circle.y - minY) / rangeY) * canvasHeightPixels;
-      // Convert normalized radius to pixels using fixed reference width
-      const radiusPixels = (circle.radius / rangeX) * referenceWidth;
+      // Convert normalized radius to pixels using the same system as overlay
+      const radiusPixels = (circle.radius / rangeX) * totalScrollRange;
       instanceData[offset + 0] = adjustedX; // center.x in pixels
       instanceData[offset + 1] = pixelY; // center.y in pixels
       instanceData[offset + 2] = radiusPixels; // radius in pixels
