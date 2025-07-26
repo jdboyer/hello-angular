@@ -1,6 +1,19 @@
 <div class="scene-controls">
   <button (click)="createConcentricRingsScene()">Concentric Rings</button>
   <button (click)="createColumnScene()">Column Scene</button>
+  
+  <div class="spacing-control">
+    <label for="spacing-input">Spacing (rem):</label>
+    <input 
+      id="spacing-input"
+      type="number" 
+      [value]="scene().spacing" 
+      (input)="onSpacingChange($event)"
+      min="1" 
+      max="20" 
+      step="0.5"
+    />
+  </div>
 </div>
 
 <app-hello-canvas [scene]="scene()" />

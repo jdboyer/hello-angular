@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ViewChild, ElementRef, HostListener, OnDestroy, input, effect } from '@angular/core';
+import { AfterViewInit, Component, ViewChild, ElementRef, HostListener, OnDestroy, input, effect, computed } from '@angular/core';
 import { RectanglePipeline } from '../pipelines/rectangle-pipeline';
 import { RoundedRectanglePipeline } from '../pipelines/rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from '../pipelines/textured-rectangle-pipeline';
@@ -19,6 +19,7 @@ export interface Scene {
   gridLines: number[];
   circles: CircleScene[]; // Array of circles to render
   labels: string[]; // Array of strings to use as labels
+  spacing: number; // Spacing in rem units for both overlay text and circle columns
 }
 
 @Component({
@@ -52,9 +53,11 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   scrollRange = signal(100); // Range for scrollbar (0-1 in overlay component)
   scrollPosition = signal(0);
   canvasWidth = signal(500);
-  textSpacing = signal(8); // Default 8rem spacing
   textList = signal<string[]>([]); // Will be populated from scene labels
   offsetX = signal(0);
+  
+  // Computed signal for text spacing from scene
+  textSpacing = computed(() => this.scene().spacing);
 
   // Effect to watch for scene changes
   private sceneEffect = effect(() => {

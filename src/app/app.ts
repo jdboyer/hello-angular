@@ -1,11 +1,15 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSliderModule } from '@angular/material/slider';
 //import { HelloD3 } from './hello-d3/hello-d3';
 import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas'
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HelloCanvas],
+  imports: [RouterOutlet, HelloCanvas, FormsModule, MatFormFieldModule, MatInputModule, MatSliderModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -21,8 +25,9 @@ export class App {
   private createDefaultScene(): Scene {
     return {
       gridLines: [0.2, 0.4, 0.6, 0.8],
-      circles: this.createColumnCircles(),
-      labels: Array.from({length: 100}, (_, i) => (i + 1).toString())
+      circles: this.createColumnCircles(8), // Default 8rem spacing
+      labels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
+      spacing: 8 // Default 8rem spacing
     };
   }
 
@@ -68,16 +73,17 @@ export class App {
   }
 
   /**
-   * Create columns of circles with the same spacing as overlay labels (8rem)
+   * Create columns of circles with the same spacing as overlay labels
    */
-  private createColumnCircles(): CircleScene[] {
+  private createColumnCircles(spacingRem: number = 8): CircleScene[] {
     const circles: CircleScene[] = [];
     
     // Calculate exact spacing to match overlay labels
-    // 8rem = 8 * 16px = 128px (assuming 16px base font size)
+    // spacingRem * 16px = spacingInPixels (assuming 16px base font size)
     // Total scroll range is 2000 pixels, normalized range is -3 to 3 (6 units)
-    // So 128px maps to: (128 / 2000) * 6 = 0.384 normalized units
-    const columnSpacing = 0.384; // Exact spacing to match 8rem overlay labels
+    // So spacingInPixels maps to: (spacingInPixels / 2000) * 6 normalized units
+    const spacingInPixels = spacingRem * 16;
+    const columnSpacing = (spacingInPixels / 2000) * 6; // Convert rem to normalized units
     
     // Number of columns to span the full scrollable width
     const numColumns = 16; // Enough columns to span the scrollable area
@@ -121,7 +127,30 @@ export class App {
    * Switch to column pattern
    */
   createColumnScene(): void {
-    this.updateSceneCircles(this.createColumnCircles());
+    const currentScene = this.scene();
+    this.updateSceneCircles(this.createColumnCircles(currentScene.spacing));
+  }
+
+  /**
+   * Update spacing and regenerate circles
+   */
+  updateSpacing(newSpacing: number): void {
+    const currentScene = this.scene();
+    this.scene.set({
+      ...currentScene,
+      spacing: newSpacing,
+      circles: this.createColumnCircles(newSpacing)
+    });
+  }
+
+  /**
+   * Handle spacing input change
+   */
+  onSpacingChange(event: any): void {
+    const newSpacing = parseFloat(event.target.value);
+    if (!isNaN(newSpacing) && newSpacing > 0) {
+      this.updateSpacing(newSpacing);
+    }
   }
 
   /**

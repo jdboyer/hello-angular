@@ -1,0 +1,39 @@
+<div class="scene-controls">
+  <button (click)="createConcentricRingsScene()">Concentric Rings</button>
+  <button (click)="createColumnScene()">Column Scene</button>
+  
+  <div class="spacing-control">
+    <mat-form-field appearance="outline" style="width: 120px;">
+      <mat-label>Spacing (rem)</mat-label>
+      <input 
+        matInput
+        type="number" 
+        [value]="scene().spacing" 
+        (input)="onSpacingChange($event)"
+        min="1" 
+        max="20" 
+        step="0.5"
+      />
+    </mat-form-field>
+  </div>
+  
+  <!-- Alternative: Slider version -->
+  <div class="spacing-control">
+    <mat-form-field appearance="outline" style="width: 150px;">
+      <mat-label>Spacing: {{scene().spacing}}rem</mat-label>
+      <mat-slider 
+        [value]="scene().spacing" 
+        (valueChange)="updateSpacing($event)"
+        min="1" 
+        max="20" 
+        step="0.5"
+        discrete
+        showTickMarks
+      >
+      </mat-slider>
+    </mat-form-field>
+  </div>
+</div>
+
+<app-hello-canvas [scene]="scene()" />
+<router-outlet /> 

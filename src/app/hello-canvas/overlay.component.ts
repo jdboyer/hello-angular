@@ -8,7 +8,7 @@ import { Component, Input, Output, signal, computed, EventEmitter } from '@angul
       @for (text of visibleTexts(); track $index; let i = $index) {
         <span
           class="axis-label"
-          [style.left.px]="(i) * convertRemToPixels(textSpacing()) + offsetX()"
+          [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX()"
         >{{ text }}</span>
       }
       <input
@@ -30,7 +30,7 @@ export class OverlayComponent {
   @Input({ required: true }) textList = signal<string[]>([]);
   @Input({ required: true }) offsetX = signal(0);
   @Input({ required: true }) canvasWidth = signal(500);
-  @Input() textSpacing = signal(2); // Default 2rem spacing between text elements
+  @Input() textSpacing!: number; // Spacing in rem units
   @Output() scrollPositionChange = new EventEmitter<number>();
 
   get canvasWidthValue() {
@@ -43,14 +43,14 @@ export class OverlayComponent {
 
   getMaxVisibleItems(): number {
     const canvasWidth = this.canvasWidth();
-    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
+    const spacingInPixels = this.convertRemToPixels(this.textSpacing);
     return Math.max(1, Math.floor(canvasWidth / spacingInPixels));
   }
 
   visibleTexts = computed(() => {
     const all = this.textList();
     const canvasWidth = this.canvasWidth();
-    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
+    const spacingInPixels = this.convertRemToPixels(this.textSpacing);
     const maxVisibleItems = Math.max(1, Math.floor(canvasWidth / spacingInPixels));
     const labelWidth = spacingInPixels;
     const wraps = Math.floor(Math.abs(this.scrollPosition() * -2000) / labelWidth);
@@ -63,7 +63,7 @@ export class OverlayComponent {
     const value = +(event.target as HTMLInputElement).value;
     this.scrollPosition.set(value);
     this.scrollPositionChange.emit(value); // Emit the new scroll position
-    const spacingInPixels = this.convertRemToPixels(this.textSpacing());
+    const spacingInPixels = this.convertRemToPixels(this.textSpacing);
     this.offsetX.set((value * -2000) % spacingInPixels);
   }
 } 
