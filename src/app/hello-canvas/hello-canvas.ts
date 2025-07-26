@@ -381,13 +381,10 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     const aspectRatio = this.canvas.nativeElement.width / this.canvas.nativeElement.height;
     this.multiCirclePipeline.updateAspectRatio(this.device, aspectRatio);
     
-    // Calculate scroll offset based on scroll position
-    // Convert scroll position (0-1) to a normalized offset that moves circles left/right
-    // Circles span from -3 to +3 (6 units), screen shows -1 to +1 (2 units)
-    // So we need to scroll by 4 units total (6 - 2 = 4) to see all circles
-    const scrollOffset = (this.scrollPosition() - 0.5) * 4; // Scale to move circles by ±2 units
-    console.log(`Canvas: ${this.canvas.nativeElement.width}x${this.canvas.nativeElement.height}, Aspect: ${aspectRatio}, Scroll: ${this.scrollPosition()}, Offset: ${scrollOffset}`);
-    this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffset);
+    // Calculate scroll offset in pixels to match text movement
+    const scrollOffsetInPixels = this.scrollPosition() * -2000;
+    const canvasWidthPixels = this.canvas.nativeElement.width;
+    this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels, canvasWidthPixels);
     
     this.multiCirclePipeline.draw(passEncoder);
 

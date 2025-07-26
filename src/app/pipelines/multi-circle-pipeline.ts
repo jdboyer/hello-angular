@@ -11,6 +11,8 @@ export class MultiCirclePipeline {
   private scrollOffset: number = 0.0;
   private circles: CircleScene[] = [];
   private device!: GPUDevice;
+  private scrollOffsetInPixels: number = 0.0;
+  private canvasWidthPixels: number = 1.0;
 
   constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
     this.device = device;
@@ -63,9 +65,9 @@ export class MultiCirclePipeline {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
-    // Create uniform buffer for aspect ratio
+    // Create uniform buffer for canvas width (in pixels)
     this.uniformBuffer = device.createBuffer({
-      size: 4, // 1 float: aspect ratio
+      size: 4, // 1 float: canvas width
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -113,29 +115,28 @@ export class MultiCirclePipeline {
         };
 
         @group(0) @binding(0)
-        var<uniform> uniforms: f32; // aspectRatio
+        var<uniform> canvasWidth: f32;
 
         @vertex
         fn main(
           @location(0) position: vec4<f32>,
           @location(1) color: vec4<f32>,
-          @location(2) instance_center: vec2f,
+          @location(2) instance_center: vec2f, // x in pixels
           @location(3) instance_radius: f32,
           @location(4) instance_color: vec4<f32>,
           @builtin(instance_index) instance_idx: u32
         ) -> VertexOutput {
             var output: VertexOutput;
-            
-            // Scale the quad by the circle radius and position it at the circle center
-            // Apply aspect ratio correction
+            // Convert pixel x to NDC: x_ndc = (x_pixel / (canvasWidth / 2.0)) - 1.0
+            let ndc_x = (instance_center.x / (canvasWidth / 2.0)) - 1.0;
+            // y stays normalized (-1 to 1)
             let scaled = vec4f(
-                (position.x * instance_radius * 2.0 + instance_center.x) / uniforms,
+                ndc_x + position.x * instance_radius * 2.0 / (canvasWidth / 2.0),
                 position.y * instance_radius * 2.0 + instance_center.y,
                 position.z,
                 position.w
             );
-            
-            output.uv = position.xy * 2.0; // UV coordinates for the SDF
+            output.uv = position.xy * 2.0;
             output.position = scaled;
             output.color = instance_color;
             return output;
@@ -234,27 +235,27 @@ export class MultiCirclePipeline {
    */
   private updateInstanceBuffer() {
     if (this.circles.length === 0) return;
-    
-    // Create instance data with scroll offset applied
+    // Convert normalized x to pixel x: x_normalized (-3 to 3) -> pixel_x
+    // Assume -3 maps to 0, +3 maps to canvasWidthPixels
+    const minX = -3;
+    const maxX = 3;
+    const rangeX = maxX - minX;
     const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
     for (let i = 0; i < this.circles.length; i++) {
       const circle = this.circles[i];
       const offset = i * 7;
-      const adjustedX = circle.x + this.scrollOffset;
-      instanceData[offset + 0] = adjustedX; // center.x with scroll offset
-      instanceData[offset + 1] = circle.y;     // center.y
-      instanceData[offset + 2] = circle.radius; // radius
-      instanceData[offset + 3] = circle.color[0]; // color.r
-      instanceData[offset + 4] = circle.color[1]; // color.g
-      instanceData[offset + 5] = circle.color[2]; // color.b
-      instanceData[offset + 6] = circle.color[3]; // color.a
+      // Map normalized x to pixel x
+      const basePixelX = ((circle.x - minX) / rangeX) * this.canvasWidthPixels;
+      const adjustedX = basePixelX + this.scrollOffsetInPixels;
+      instanceData[offset + 0] = adjustedX; // center.x in pixels
+      // y stays normalized for now (could be mapped to pixels if needed)
+      instanceData[offset + 1] = circle.y;
+      instanceData[offset + 2] = circle.radius; // radius (still normalized)
+      instanceData[offset + 3] = circle.color[0];
+      instanceData[offset + 4] = circle.color[1];
+      instanceData[offset + 5] = circle.color[2];
+      instanceData[offset + 6] = circle.color[3];
     }
-    
-    if (this.circles.length > 0) {
-      console.log(`Instance buffer: First circle at (${instanceData[0]}, ${instanceData[1]}), Last circle at (${instanceData[instanceData.length - 7]}, ${instanceData[instanceData.length - 6]})`);
-    }
-    
-    // Update instance buffer
     this.instanceBuffer.destroy();
     this.instanceBuffer = this.device.createBuffer({
       size: instanceData.byteLength,
@@ -278,11 +279,11 @@ export class MultiCirclePipeline {
    * @param device GPUDevice
    * @param scrollOffset number (horizontal scroll offset)
    */
-  updateScrollOffset(device: GPUDevice, scrollOffset: number) {
-    this.scrollOffset = scrollOffset;
-    console.log(`Pipeline: Scroll offset set to ${scrollOffset}, updating instance buffer for ${this.circles.length} circles`);
+  updateScrollOffset(device: GPUDevice, scrollOffsetInPixels: number, canvasWidthPixels: number) {
+    this.scrollOffsetInPixels = scrollOffsetInPixels;
+    this.canvasWidthPixels = canvasWidthPixels;
     this.updateUniforms(device);
-    this.updateInstanceBuffer(); // Update instance buffer with new scroll offset
+    this.updateInstanceBuffer();
   }
 
   /**
@@ -290,7 +291,7 @@ export class MultiCirclePipeline {
    * @param device GPUDevice
    */
   private updateUniforms(device: GPUDevice) {
-    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([this.aspectRatio]));
+    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([this.canvasWidthPixels]));
   }
 
   draw(passEncoder: GPURenderPassEncoder) {
