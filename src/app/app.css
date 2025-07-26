@@ -1,0 +1,29 @@
+/* Add styling for scene controls */
+.scene-controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scene-controls button {
+  padding: 8px 16px;
+  background-color: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.scene-controls button:hover {
+  background-color: #2d3748;
+}
+
+.scene-controls button:active {
+  background-color: #1a202c;
+}
