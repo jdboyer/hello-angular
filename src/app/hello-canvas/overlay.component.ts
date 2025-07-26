@@ -1,4 +1,4 @@
-import { Component, Input, signal, computed } from '@angular/core';
+import { Component, Input, Output, signal, computed, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-overlay',
@@ -31,6 +31,7 @@ export class OverlayComponent {
   @Input({ required: true }) offsetX = signal(0);
   @Input({ required: true }) canvasWidth = signal(500);
   @Input() textSpacing = signal(2); // Default 2rem spacing between text elements
+  @Output() scrollPositionChange = new EventEmitter<number>();
 
   get canvasWidthValue() {
     return this.canvasWidth();
@@ -61,6 +62,7 @@ export class OverlayComponent {
   onScroll(event: Event) {
     const value = +(event.target as HTMLInputElement).value;
     this.scrollPosition.set(value);
+    this.scrollPositionChange.emit(value); // Emit the new scroll position
     const spacingInPixels = this.convertRemToPixels(this.textSpacing());
     this.offsetX.set((value * -2000) % spacingInPixels);
   }

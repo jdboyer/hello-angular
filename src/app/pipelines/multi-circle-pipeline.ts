@@ -8,6 +8,7 @@ export class MultiCirclePipeline {
   private uniformBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
   private aspectRatio: number = 1.0;
+  private scrollOffset: number = 0.0;
   private circles: CircleScene[] = [];
   private device!: GPUDevice;
 
@@ -64,7 +65,7 @@ export class MultiCirclePipeline {
 
     // Create uniform buffer for aspect ratio
     this.uniformBuffer = device.createBuffer({
-      size: 4, // 1 float for aspect ratio
+      size: 4, // 1 float: aspect ratio
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -126,7 +127,7 @@ export class MultiCirclePipeline {
             var output: VertexOutput;
             
             // Scale the quad by the circle radius and position it at the circle center
-            // Apply aspect ratio correction to maintain circular shape
+            // Apply aspect ratio correction
             let scaled = vec4f(
                 (position.x * instance_radius * 2.0 + instance_center.x) / uniforms,
                 position.y * instance_radius * 2.0 + instance_center.y,
@@ -225,19 +226,32 @@ export class MultiCirclePipeline {
    */
   setCircles(circles: CircleScene[]) {
     this.circles = circles;
+    this.updateInstanceBuffer();
+  }
+
+  /**
+   * Update the instance buffer with current circles and scroll offset
+   */
+  private updateInstanceBuffer() {
+    if (this.circles.length === 0) return;
     
-    // Create instance data
-    const instanceData = new Float32Array(circles.length * 7); // 7 floats per instance
-    for (let i = 0; i < circles.length; i++) {
-      const circle = circles[i];
+    // Create instance data with scroll offset applied
+    const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
+    for (let i = 0; i < this.circles.length; i++) {
+      const circle = this.circles[i];
       const offset = i * 7;
-      instanceData[offset + 0] = circle.x;     // center.x
+      const adjustedX = circle.x + this.scrollOffset;
+      instanceData[offset + 0] = adjustedX; // center.x with scroll offset
       instanceData[offset + 1] = circle.y;     // center.y
       instanceData[offset + 2] = circle.radius; // radius
       instanceData[offset + 3] = circle.color[0]; // color.r
       instanceData[offset + 4] = circle.color[1]; // color.g
       instanceData[offset + 5] = circle.color[2]; // color.b
       instanceData[offset + 6] = circle.color[3]; // color.a
+    }
+    
+    if (this.circles.length > 0) {
+      console.log(`Instance buffer: First circle at (${instanceData[0]}, ${instanceData[1]}), Last circle at (${instanceData[instanceData.length - 7]}, ${instanceData[instanceData.length - 6]})`);
     }
     
     // Update instance buffer
@@ -256,8 +270,27 @@ export class MultiCirclePipeline {
    */
   updateAspectRatio(device: GPUDevice, aspectRatio: number) {
     this.aspectRatio = aspectRatio;
-    // Update the uniform buffer with the new aspect ratio
-    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([aspectRatio]));
+    this.updateUniforms(device);
+  }
+
+  /**
+   * Update the scroll offset
+   * @param device GPUDevice
+   * @param scrollOffset number (horizontal scroll offset)
+   */
+  updateScrollOffset(device: GPUDevice, scrollOffset: number) {
+    this.scrollOffset = scrollOffset;
+    console.log(`Pipeline: Scroll offset set to ${scrollOffset}, updating instance buffer for ${this.circles.length} circles`);
+    this.updateUniforms(device);
+    this.updateInstanceBuffer(); // Update instance buffer with new scroll offset
+  }
+
+  /**
+   * Update the uniform buffer with current aspect ratio
+   * @param device GPUDevice
+   */
+  private updateUniforms(device: GPUDevice) {
+    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([this.aspectRatio]));
   }
 
   draw(passEncoder: GPURenderPassEncoder) {

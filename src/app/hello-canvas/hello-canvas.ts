@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { AfterViewInit, Component, ViewChild, ElementRef, HostListener, OnDestroy } from '@angular/core';
 import { RectanglePipeline } from '../pipelines/rectangle-pipeline';
 import { RoundedRectanglePipeline } from '../pipelines/rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from '../pipelines/textured-rectangle-pipeline';
@@ -33,7 +33,7 @@ export interface Scene {
   templateUrl: './hello-canvas.html',
   styleUrl: './hello-canvas.css'
 })
-export class HelloCanvas implements AfterViewInit {
+export class HelloCanvas implements AfterViewInit, OnDestroy {
   @ViewChild('drawingCanvas') canvas!: ElementRef<HTMLCanvasElement>;
   //private context!: CanvasRenderingContext2D; // Stores the 2D rendering context
   private myPath: Path2D = new Path2D(); 
@@ -51,7 +51,7 @@ export class HelloCanvas implements AfterViewInit {
   private multiCirclePipeline!: MultiCirclePipeline;
   private gridPipeline!: GridPipeline;
 
-  scrollRange = signal(100);
+  scrollRange = signal(100); // Range for scrollbar (0-1 in overlay component)
   scrollPosition = signal(0);
   canvasWidth = signal(500);
   textSpacing = signal(8); // Default 2rem spacing
@@ -81,20 +81,29 @@ export class HelloCanvas implements AfterViewInit {
   offsetX = signal(0);
 
   /**
-   * Generate a scene with many small circles at various positions
+   * Generate a scene with many small circles that span the complete width
    */
   private generateCircleScene(): CircleScene[] {
     const circles: CircleScene[] = [];
     
-    // Generate a grid of circles
-    for (let i = 0; i < 20; i++) {
-      for (let j = 0; j < 15; j++) {
-        const x = (i / 19) * 2 - 1; // Map 0-19 to -1 to 1
-        const y = (j / 14) * 2 - 1; // Map 0-14 to -1 to 1
+    // Generate a wide grid of circles that spans multiple screen widths
+    const numColumns = 60; // More columns to span wider area
+    const numRows = 15;
+    
+    for (let i = 0; i < numColumns; i++) {
+      for (let j = 0; j < numRows; j++) {
+        // Map to a wider range: -3 to 3 (3x the normal width)
+        const x = (i / (numColumns - 1)) * 6 - 3; // Map 0-59 to -3 to 3
+        const y = (j / (numRows - 1)) * 2 - 1; // Map 0-14 to -1 to 1
+        
+        // Debug: Log first and last positions
+        if ((i === 0 && j === 0) || (i === numColumns - 1 && j === numRows - 1)) {
+          console.log(`Grid circle at (${i}, ${j}): x=${x}, y=${y}`);
+        }
         
         // Vary colors based on position
-        const r = (i / 19) * 0.8 + 0.2;
-        const g = (j / 14) * 0.8 + 0.2;
+        const r = (i / (numColumns - 1)) * 0.8 + 0.2;
+        const g = (j / (numRows - 1)) * 0.8 + 0.2;
         const b = 0.5;
         const a = 0.7;
         
@@ -107,16 +116,29 @@ export class HelloCanvas implements AfterViewInit {
       }
     }
     
-    // Add some larger accent circles
+    // Add some larger accent circles at key positions
     circles.push(
-      { x: -0.8, y: 0.8, radius: 0.08, color: [1.0, 0.0, 0.0, 0.9] }, // Red circle top-left
-      { x: 0.8, y: 0.8, radius: 0.08, color: [0.0, 1.0, 0.0, 0.9] },  // Green circle top-right
-      { x: -0.8, y: -0.8, radius: 0.08, color: [0.0, 0.0, 1.0, 0.9] }, // Blue circle bottom-left
-      { x: 0.8, y: -0.8, radius: 0.08, color: [1.0, 1.0, 0.0, 0.9] },  // Yellow circle bottom-right
+      { x: -2.5, y: 0.8, radius: 0.08, color: [1.0, 0.0, 0.0, 0.9] }, // Red circle far left
+      { x: 2.5, y: 0.8, radius: 0.08, color: [0.0, 1.0, 0.0, 0.9] },  // Green circle far right
+      { x: -2.5, y: -0.8, radius: 0.08, color: [0.0, 0.0, 1.0, 0.9] }, // Blue circle bottom far left
+      { x: 2.5, y: -0.8, radius: 0.08, color: [1.0, 1.0, 0.0, 0.9] },  // Yellow circle bottom far right
       { x: 0.0, y: 0.0, radius: 0.12, color: [1.0, 0.0, 1.0, 0.8] }   // Magenta circle center
     );
     
+    console.log(`Accent circles added. Total circles: ${circles.length}`);
+    console.log(`Grid circles: ${numColumns * numRows}, Accent circles: 5`);
+    
     return circles;
+  }
+
+  /**
+   * Handle scroll position changes from the overlay component
+   * @param newPosition New scroll position (0-1)
+   */
+  onScrollPositionChange(newPosition: number) {
+    console.log(`Scroll position changed to: ${newPosition}`);
+    this.scrollPosition.set(newPosition);
+    this.drawScene(); // Redraw with new scroll position
   }
 
   /**
@@ -285,7 +307,9 @@ export class HelloCanvas implements AfterViewInit {
     
     // Generate the circle scene
     this.scene.circles = this.generateCircleScene();
+    console.log(`Generated ${this.scene.circles.length} circles. First: (${this.scene.circles[0].x}, ${this.scene.circles[0].y}), Last: (${this.scene.circles[this.scene.circles.length-1].x}, ${this.scene.circles[this.scene.circles.length-1].y})`);
     this.multiCirclePipeline.setCircles(this.scene.circles)
+    
     //this.setupCircles();
     // textured squares for symbols
     // circles 
@@ -354,7 +378,17 @@ export class HelloCanvas implements AfterViewInit {
     //this.texturedRectanglePipeline.draw(passEncoder);
     //this.circlePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
     //this.circlePipeline.draw(passEncoder);
-    this.multiCirclePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
+    const aspectRatio = this.canvas.nativeElement.width / this.canvas.nativeElement.height;
+    this.multiCirclePipeline.updateAspectRatio(this.device, aspectRatio);
+    
+    // Calculate scroll offset based on scroll position
+    // Convert scroll position (0-1) to a normalized offset that moves circles left/right
+    // Circles span from -3 to +3 (6 units), screen shows -1 to +1 (2 units)
+    // So we need to scroll by 4 units total (6 - 2 = 4) to see all circles
+    const scrollOffset = (this.scrollPosition() - 0.5) * 4; // Scale to move circles by ±2 units
+    console.log(`Canvas: ${this.canvas.nativeElement.width}x${this.canvas.nativeElement.height}, Aspect: ${aspectRatio}, Scroll: ${this.scrollPosition()}, Offset: ${scrollOffset}`);
+    this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffset);
+    
     this.multiCirclePipeline.draw(passEncoder);
 
     // End the render pass
