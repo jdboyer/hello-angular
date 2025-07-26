@@ -49,21 +49,36 @@
   pointer-events: auto;
   height: 18px;
   background: transparent;
-  /* Webkit scrollbar style mimic */
-  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
 }
-.overlay-scrollbar::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
+
+.scrollbar-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.scrollbar-thumb {
+  position: absolute;
   width: var(--thumb-width, 60px);
   height: 8px;
   background: #888;
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   cursor: pointer;
+  transition: background-color 0.2s;
 }
-.overlay-scrollbar::-webkit-slider-runnable-track {
-  height: 8px;
-  background: #222;
-  border-radius: 4px;
+
+.scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.scrollbar-thumb:active {
+  background: #ccc;
 } 

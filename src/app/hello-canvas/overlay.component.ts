@@ -11,16 +11,20 @@ import { Component, Input, Output, signal, computed, EventEmitter, Signal } from
           [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX()"
         >{{ text }}</span>
       }
-      <input
-        type="range"
+      <div 
         class="overlay-scrollbar"
-        [min]="0"
-        [max]="1"
-        [step]="0.001"
-        [value]="scrollPosition()"
-        (input)="onScroll($event)"
         [style.--thumb-width]="getThumbWidth() + 'px'"
-      />
+        (mousedown)="onMouseDown($event)"
+      >
+        <div 
+          class="scrollbar-track"
+          (click)="onTrackClick($event)"
+        ></div>
+        <div 
+          class="scrollbar-thumb"
+          [style.left]="getThumbPosition() + 'px'"
+        ></div>
+      </div>
     </div>
   `,
   styleUrls: ['./overlay.component.css']
@@ -87,10 +91,60 @@ export class OverlayComponent {
     return all.slice(start, start + maxVisibleItems);
   });
 
-  onScroll(event: Event) {
-    const value = +(event.target as HTMLInputElement).value;
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartScrollPosition = 0;
+
+  getThumbPosition(): number {
+    const canvasWidth = this.canvasWidth();
+    const scrollPosition = this.scrollPosition();
+    const thumbWidth = this.getThumbWidth();
+    const trackWidth = canvasWidth - thumbWidth;
+    return scrollPosition * trackWidth;
+  }
+
+  onMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+    this.isDragging = true;
+    this.dragStartX = event.clientX;
+    this.dragStartScrollPosition = this.scrollPosition();
+    document.addEventListener('mousemove', this.onMouseMove.bind(this));
+    document.addEventListener('mouseup', this.onMouseUp.bind(this));
+  }
+
+  onMouseMove(event: MouseEvent): void {
+    if (!this.isDragging) return;
+    
+    const canvasWidth = this.canvasWidth();
+    const thumbWidth = this.getThumbWidth();
+    const trackWidth = canvasWidth - thumbWidth;
+    const deltaX = event.clientX - this.dragStartX;
+    const deltaScroll = deltaX / trackWidth;
+    
+    const newScrollPosition = Math.max(0, Math.min(1, this.dragStartScrollPosition + deltaScroll));
+    this.updateScrollPosition(newScrollPosition);
+  }
+
+  onMouseUp(event: MouseEvent): void {
+    if (this.isDragging) {
+      this.isDragging = false;
+      document.removeEventListener('mousemove', this.onMouseMove.bind(this));
+      document.removeEventListener('mouseup', this.onMouseUp.bind(this));
+    }
+  }
+
+  onTrackClick(event: MouseEvent): void {
+    const canvasWidth = this.canvasWidth();
+    const thumbWidth = this.getThumbWidth();
+    const trackWidth = canvasWidth - thumbWidth;
+    const clickX = event.offsetX;
+    const newScrollPosition = Math.max(0, Math.min(1, clickX / trackWidth));
+    this.updateScrollPosition(newScrollPosition);
+  }
+
+  private updateScrollPosition(value: number): void {
     this.scrollPosition.set(value);
-    this.scrollPositionChange.emit(value); // Emit the new scroll position
+    this.scrollPositionChange.emit(value);
     
     const canvasWidth = this.canvasWidth();
     const spacingInPixels = this.convertRemToPixels(this.textSpacing);
