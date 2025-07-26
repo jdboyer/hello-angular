@@ -38,12 +38,12 @@ export class App {
     const circles: CircleScene[] = [];
     const numRings = 10;
     const circlesPerRing = 32;
-    const minRadius = 0.1;
-    const maxRadius = 1.2; // Slightly smaller for tiling
+    const minRadius = 1.6; // 1.6rem
+    const maxRadius = 19.2; // 19.2rem (1.2 * 16)
     const ringSpacing = (maxRadius - minRadius) / (numRings - 1);
-    const tileSpacing = 2.4; // Distance between centers of each tile (should be > maxRadius*2 for overlap)
-    const minX = -3;
-    const maxX = 3 + 2 * tileSpacing; // extend even further beyond right edge
+    const tileSpacing = 38.4; // 38.4rem (2.4 * 16) - Distance between centers of each tile
+    const minX = -48; // -48rem (-3 * 16)
+    const maxX = 48 + 2 * tileSpacing; // extend even further beyond right edge
     // Compute how many tiles are needed to cover the full scrollable width (including right edge)
     const numTiles = Math.ceil((maxX - minX) / tileSpacing) + 1;
     for (let tile = 0; tile < numTiles; tile++) {
@@ -61,13 +61,13 @@ export class App {
           circles.push({
             x: x,
             y: y,
-            radius: 0.07 - 0.004 * ring, // Slightly smaller for outer rings
+            radius: 1.12 - 0.064 * ring, // Slightly smaller for outer rings (0.07 * 16 - 0.004 * 16 * ring)
             color: color
           });
         }
       }
       // Add a central circle for each tile
-      circles.push({ x: centerX, y: centerY, radius: 0.09, color: this.hslToRgba(tile * 30, 0.7, 0.5, 0.9) });
+      circles.push({ x: centerX, y: centerY, radius: 1.44, color: this.hslToRgba(tile * 30, 0.7, 0.5, 0.9) }); // 0.09 * 16
     }
     return circles;
   }
@@ -78,23 +78,16 @@ export class App {
   private createColumnCircles(spacingRem: number = 8): CircleScene[] {
     const circles: CircleScene[] = [];
     
-    // Calculate exact spacing to match overlay labels
-    // spacingRem * 16px = spacingInPixels (assuming 16px base font size)
-    // Total scroll range is 2000 pixels, normalized range is -3 to 3 (6 units)
-    // So spacingInPixels maps to: (spacingInPixels / 2000) * 6 normalized units
-    const spacingInPixels = spacingRem * 16;
-    const columnSpacing = (spacingInPixels / 2000) * 6; // Convert rem to normalized units
-    
     // Number of columns to span the full scrollable width
     const numColumns = 16; // Enough columns to span the scrollable area
     const circlesPerColumn = 8; // Number of circles per column
     
     for (let col = 0; col < numColumns; col++) {
-      const x = (col * columnSpacing) - 3; // Start at -3 and go right
+      const x = (col * spacingRem) - 48; // Start at -48rem and go right (spacing in rem)
       
       for (let row = 0; row < circlesPerColumn; row++) {
-        // Distribute circles evenly in the column from -1 to 1
-        const y = (row / (circlesPerColumn - 1)) * 2 - 1;
+        // Distribute circles evenly in the column from -16 to 16 rem
+        const y = (row / (circlesPerColumn - 1)) * 32 - 16;
         
         // Vary colors based on column and row
         const hue = (col * 22.5 + row * 30) % 360; // 22.5° per column (360/16)
@@ -107,7 +100,7 @@ export class App {
         circles.push({
           x: x,
           y: y,
-          radius: 0.03 + (row / circlesPerColumn) * 0.02, // Slightly larger circles at top
+          radius: 0.48 + (row / circlesPerColumn) * 0.32, // Slightly larger circles at top (0.03*16 to 0.05*16)
           color: color
         });
       }

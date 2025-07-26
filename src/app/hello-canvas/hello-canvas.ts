@@ -9,9 +9,9 @@ import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
 
 export interface CircleScene {
-  x: number;        // X position (normalized -1 to 1)
-  y: number;        // Y position (normalized -1 to 1)
-  radius: number;   // Radius (normalized)
+  x: number;        // X position in rem units
+  y: number;        // Y position in rem units  
+  radius: number;   // Radius in rem units
   color: [number, number, number, number]; // RGBA values
 }
 
@@ -255,13 +255,13 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     //this.texturedRectanglePipeline.draw(passEncoder);
     //this.circlePipeline.updateAspectRatio(this.device, this.canvas.nativeElement.width / this.canvas.nativeElement.height);
     //this.circlePipeline.draw(passEncoder);
-    const aspectRatio = this.canvas.nativeElement.width / this.canvas.nativeElement.height;
-    this.multiCirclePipeline.updateAspectRatio(this.device, aspectRatio);
+    const canvasWidthPixels = this.canvas.nativeElement.width;
+    const canvasHeightPixels = this.canvas.nativeElement.height;
+    this.multiCirclePipeline.updateCanvasDimensions(this.device, canvasWidthPixels, canvasHeightPixels);
     
     // Calculate scroll offset in pixels to match text movement
     const scrollOffsetInPixels = this.scrollPosition() * -2000;
-    const canvasWidthPixels = this.canvas.nativeElement.width;
-    this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels, canvasWidthPixels);
+    this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels);
     
     this.multiCirclePipeline.draw(passEncoder);
 

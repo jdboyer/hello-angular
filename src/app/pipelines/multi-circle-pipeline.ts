@@ -13,6 +13,8 @@ export class MultiCirclePipeline {
   private device!: GPUDevice;
   private scrollOffsetInPixels: number = 0.0;
   private canvasWidthPixels: number = 1.0;
+  private canvasHeightPixels: number = 1.0;
+  private pxToRemRatio: number = 16.0; // Default: 16px = 1rem
 
   constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
     this.device = device;
@@ -65,9 +67,9 @@ export class MultiCirclePipeline {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
-    // Create uniform buffer for canvas width (in pixels)
+    // Create uniform buffer for transformation parameters
     this.uniformBuffer = device.createBuffer({
-      size: 8, // 2 floats: canvas width, aspect ratio
+      size: 16, // 4 floats: canvas width, height, pxToRem ratio, scroll offset
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -99,7 +101,7 @@ export class MultiCirclePipeline {
       ],
     });
 
-    // Create Shader Modules for Multiple Circles with Instancing
+    // Create Shader Modules for Multiple Circles with Rem-based Transformation
     const multiCircleVertexShaderModule = device.createShaderModule({
       code: `
         struct VertexOutput {
@@ -109,38 +111,52 @@ export class MultiCirclePipeline {
         };
 
         struct CircleInstance {
-            center: vec2f,
-            radius: f32,
+            center: vec2f,    // x, y in rem units
+            radius: f32,      // radius in rem units
             color: vec4<f32>,
         };
 
         @group(0) @binding(0)
-        var<uniform> uniforms: vec2f; // x: canvasWidth, y: aspectRatio
+        var<uniform> uniforms: vec4f; // x: canvasWidth, y: canvasHeight, z: pxToRemRatio, w: scrollOffset
 
         @vertex
         fn main(
           @location(0) position: vec4<f32>,
           @location(1) color: vec4<f32>,
-          @location(2) instance_center: vec2f, // x in pixels
-          @location(3) instance_radius: f32,   // radius in pixels
+          @location(2) instance_center: vec2f, // x, y in rem units
+          @location(3) instance_radius: f32,   // radius in rem units
           @location(4) instance_color: vec4<f32>,
           @builtin(instance_index) instance_idx: u32
         ) -> VertexOutput {
             var output: VertexOutput;
+            
             let canvasWidth = uniforms.x;
-            let aspectRatio = uniforms.y;
-            // Convert pixel x to NDC: x_ndc = (x_pixel / (canvasWidth / 2.0)) - 1.0
-            let ndc_x = (instance_center.x / (canvasWidth / 2.0)) - 1.0;
-            // Convert pixel y to NDC: y_ndc = (y_pixel / (canvasHeight / 2.0)) - 1.0
-            let canvasHeight = canvasWidth / aspectRatio;
-            let ndc_y = (instance_center.y / (canvasHeight / 2.0)) - 1.0;
-            // Scale the quad by the pixel radius and convert to NDC, preserving aspect ratio
+            let canvasHeight = uniforms.y;
+            let pxToRemRatio = uniforms.z;
+            let scrollOffset = uniforms.w;
+            
+            // Convert rem coordinates to pixels
+            let centerXInPixels = instance_center.x * pxToRemRatio;
+            let centerYInPixels = instance_center.y * pxToRemRatio;
+            let radiusInPixels = instance_radius * pxToRemRatio;
+            
+            // Apply scroll offset to x coordinate
+            let adjustedXInPixels = centerXInPixels + scrollOffset;
+            
+            // Convert pixel coordinates to NDC (Normalized Device Coordinates)
+            // NDC x: -1 to 1 maps to 0 to canvasWidth
+            let ndc_x = (adjustedXInPixels / (canvasWidth / 2.0)) - 1.0;
+            // NDC y: -1 to 1 maps to 0 to canvasHeight (flip Y so positive Y is up)
+            let ndc_y = 1.0 - (centerYInPixels / (canvasHeight / 2.0));
+            
+            // Scale the quad by the pixel radius and convert to NDC
             let scaled = vec4f(
-                ndc_x + position.x * instance_radius / (canvasWidth / 2.0),
-                ndc_y + position.y * instance_radius / (canvasHeight / 2.0),
+                ndc_x + position.x * radiusInPixels / (canvasWidth / 2.0),
+                ndc_y + position.y * radiusInPixels / (canvasHeight / 2.0),
                 position.z,
                 position.w
             );
+            
             output.uv = position.xy * 2.0;
             output.position = scaled;
             output.color = instance_color;
@@ -228,7 +244,7 @@ export class MultiCirclePipeline {
 
   /**
    * Set the circles to render
-   * @param circles Array of circle descriptions
+   * @param circles Array of circle descriptions in rem units
    */
   setCircles(circles: CircleScene[]) {
     this.circles = circles;
@@ -236,41 +252,26 @@ export class MultiCirclePipeline {
   }
 
   /**
-   * Update the instance buffer with current circles and scroll offset
+   * Update the instance buffer with current circles
    */
   private updateInstanceBuffer() {
     if (this.circles.length === 0) return;
-    // Convert normalized x to pixel x: x_normalized (-3 to 3) -> pixel_x
-    // Assume -3 maps to 0, +3 maps to canvasWidthPixels
-    const minX = -3;
-    const maxX = 3;
-    const rangeX = maxX - minX;
-    // Convert normalized y to pixel y: y_normalized (-1 to 1) -> pixel_y
-    const minY = -1;
-    const maxY = 1;
-    const rangeY = maxY - minY;
-    const canvasHeightPixels = this.canvasWidthPixels / this.aspectRatio;
-    // Use the same coordinate system as the overlay (-2000 offset)
-    const totalScrollRange = 2000; // Total scroll range in pixels
+    
     const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
     for (let i = 0; i < this.circles.length; i++) {
       const circle = this.circles[i];
       const offset = i * 7;
-      // Map normalized x to pixel x using the same system as overlay
-      const basePixelX = ((circle.x - minX) / rangeX) * totalScrollRange;
-      const adjustedX = basePixelX + this.scrollOffsetInPixels;
-      // Map normalized y to pixel y
-      const pixelY = ((circle.y - minY) / rangeY) * canvasHeightPixels;
-      // Convert normalized radius to pixels using the same system as overlay
-      const radiusPixels = (circle.radius / rangeX) * totalScrollRange;
-      instanceData[offset + 0] = adjustedX; // center.x in pixels
-      instanceData[offset + 1] = pixelY; // center.y in pixels
-      instanceData[offset + 2] = radiusPixels; // radius in pixels
+      
+      // Store rem coordinates directly (transformation happens in vertex shader)
+      instanceData[offset + 0] = circle.x; // center.x in rem
+      instanceData[offset + 1] = circle.y; // center.y in rem
+      instanceData[offset + 2] = circle.radius; // radius in rem
       instanceData[offset + 3] = circle.color[0];
       instanceData[offset + 4] = circle.color[1];
       instanceData[offset + 5] = circle.color[2];
       instanceData[offset + 6] = circle.color[3];
     }
+    
     this.instanceBuffer.destroy();
     this.instanceBuffer = this.device.createBuffer({
       size: instanceData.byteLength,
@@ -280,33 +281,39 @@ export class MultiCirclePipeline {
   }
 
   /**
-   * Call this before draw() to update the aspect ratio dynamically.
+   * Call this before draw() to update the canvas dimensions and aspect ratio.
    * @param device GPUDevice
-   * @param aspectRatio number (canvas width / height)
+   * @param canvasWidthPixels number (canvas width in pixels)
+   * @param canvasHeightPixels number (canvas height in pixels)
    */
-  updateAspectRatio(device: GPUDevice, aspectRatio: number) {
-    this.aspectRatio = aspectRatio;
+  updateCanvasDimensions(device: GPUDevice, canvasWidthPixels: number, canvasHeightPixels: number) {
+    this.canvasWidthPixels = canvasWidthPixels;
+    this.canvasHeightPixels = canvasHeightPixels;
+    this.aspectRatio = canvasWidthPixels / canvasHeightPixels;
     this.updateUniforms(device);
   }
 
   /**
    * Update the scroll offset
    * @param device GPUDevice
-   * @param scrollOffset number (horizontal scroll offset)
+   * @param scrollOffsetInPixels number (horizontal scroll offset in pixels)
    */
-  updateScrollOffset(device: GPUDevice, scrollOffsetInPixels: number, canvasWidthPixels: number) {
+  updateScrollOffset(device: GPUDevice, scrollOffsetInPixels: number) {
     this.scrollOffsetInPixels = scrollOffsetInPixels;
-    this.canvasWidthPixels = canvasWidthPixels;
     this.updateUniforms(device);
-    this.updateInstanceBuffer();
   }
 
   /**
-   * Update the uniform buffer with current aspect ratio
+   * Update the uniform buffer with current transformation parameters
    * @param device GPUDevice
    */
   private updateUniforms(device: GPUDevice) {
-    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([this.canvasWidthPixels, this.aspectRatio]));
+    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([
+      this.canvasWidthPixels, 
+      this.canvasHeightPixels, 
+      this.pxToRemRatio, 
+      this.scrollOffsetInPixels
+    ]));
   }
 
   draw(passEncoder: GPURenderPassEncoder) {
