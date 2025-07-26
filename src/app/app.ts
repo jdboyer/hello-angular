@@ -33,7 +33,8 @@ export class App {
       circles: this.createColumnCircles(8), // Default 8rem spacing
       labels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
       bottomLabels: monthLabels,
-      spacing: 8 // Default 8rem spacing
+      spacing: 8, // Default 8rem spacing
+      overlayXOffset: 4 // Default 0rem offset
     };
   }
 

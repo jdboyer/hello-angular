@@ -21,6 +21,7 @@ export interface Scene {
   labels: string[]; // Array of strings to use as labels
   bottomLabels: { text: string; xOffset: number }[]; // Array of bottom labels with x offsets in rem
   spacing: number; // Spacing in rem units for both overlay text and circle columns
+  overlayXOffset: number; // X offset in rem units to shift all overlay text to the right
 }
 
 @Component({
@@ -57,6 +58,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   textList = signal<string[]>([]); // Will be populated from scene labels
   bottomLabelsList = signal<{ text: string; xOffset: number }[]>([]); // Will be populated from scene bottomLabels
   offsetX = signal(0);
+  overlayXOffset = signal(0); // X offset in rem units to shift all overlay text
   
   // Input signal for scroll range in rem units (total scrollable width in rem)
   scrollRangeRem = input<number>(80);
@@ -84,6 +86,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.textList.set(currentScene.labels);
     console.log('Setting bottom labels:', currentScene.bottomLabels);
     this.bottomLabelsList.set(currentScene.bottomLabels);
+    this.overlayXOffset.set(currentScene.overlayXOffset);
     
     if (this.multiCirclePipeline && this.gridPipeline) {
       // Update grid lines

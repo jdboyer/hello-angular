@@ -8,13 +8,13 @@ import { Component, Input, Output, signal, computed, EventEmitter, Signal } from
       @for (text of visibleTexts(); track $index; let i = $index) {
         <span
           class="axis-label"
-          [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX()"
+          [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX() + convertRemToPixels(overlayXOffset())"
         >{{ text }}</span>
       }
       @for (label of visibleBottomLabels(); track $index) {
         <span
           class="bottom-axis-label"
-          [style.left.px]="convertRemToPixels(label.xOffset) - getBottomLabelsScrollOffset()"
+          [style.left.px]="convertRemToPixels(label.xOffset) - getBottomLabelsScrollOffset() + convertRemToPixels(overlayXOffset())"
         >{{ label.text }}</span>
       }
       <div 
@@ -41,6 +41,7 @@ export class OverlayComponent {
   @Input({ required: true }) textList = signal<string[]>([]);
   @Input({ required: true }) bottomLabelsList = signal<{ text: string; xOffset: number }[]>([]);
   @Input({ required: true }) offsetX = signal(0);
+  @Input({ required: true }) overlayXOffset = signal(0); // X offset in rem units to shift all overlay text
   @Input({ required: true }) canvasWidth = signal(500);
   @Input() textSpacing!: number; // Spacing in rem units
   @Output() scrollPositionChange = new EventEmitter<number>();
