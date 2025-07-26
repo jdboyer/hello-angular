@@ -16,12 +16,12 @@ export class App {
   protected readonly scene = signal<Scene>(this.createDefaultScene());
 
   /**
-   * Create a default scene with concentric rings
+   * Create a default scene with column pattern
    */
   private createDefaultScene(): Scene {
     return {
       gridLines: [0.2, 0.4, 0.6, 0.8],
-      circles: this.createConcentricRingsScene(),
+      circles: this.createColumnCircles(),
       labels: Array.from({length: 100}, (_, i) => (i + 1).toString())
     };
   }
@@ -29,7 +29,7 @@ export class App {
   /**
    * Create a tiled concentric rings pattern of circles that spans the full scrollable width
    */
-  private createConcentricRingsScene(): CircleScene[] {
+  private createConcentricRingsCircles(): CircleScene[] {
     const circles: CircleScene[] = [];
     const numRings = 10;
     const circlesPerRing = 32;
@@ -68,141 +68,9 @@ export class App {
   }
 
   /**
-   * Create a spiral pattern of circles
-   */
-  createSpiralScene(): void {
-    const circles: CircleScene[] = [];
-    const numCircles = 100;
-    
-    for (let i = 0; i < numCircles; i++) {
-      const angle = (i / numCircles) * 8 * Math.PI; // 4 full rotations
-      const radius = (i / numCircles) * 0.8; // Spiral from center to edge
-      
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      
-      // Color gradient from blue to red
-      const t = i / numCircles;
-      const r = t;
-      const g = 0.2;
-      const b = 1.0 - t;
-      const a = 0.8;
-      
-      circles.push({
-        x: x,
-        y: y,
-        radius: 0.02 + (1 - t) * 0.03, // Larger circles at center
-        color: [r, g, b, a]
-      });
-    }
-    
-    this.updateSceneCircles(circles);
-  }
-
-  /**
-   * Create a random scatter of circles
-   */
-  createRandomScene(): void {
-    const circles: CircleScene[] = [];
-    const numCircles = 200;
-    
-    for (let i = 0; i < numCircles; i++) {
-      const x = (Math.random() - 0.5) * 2; // -1 to 1
-      const y = (Math.random() - 0.5) * 2; // -1 to 1
-      
-      // Random colors
-      const r = Math.random();
-      const g = Math.random();
-      const b = Math.random();
-      const a = 0.6 + Math.random() * 0.4; // 0.6 to 1.0
-      
-      circles.push({
-        x: x,
-        y: y,
-        radius: 0.01 + Math.random() * 0.04, // 0.01 to 0.05
-        color: [r, g, b, a]
-      });
-    }
-    
-    this.updateSceneCircles(circles);
-  }
-
-  /**
-   * Create a Lissajous curve pattern of circles
-   */
-  createLissajousScene(): void {
-    const circles: CircleScene[] = [];
-    const numCircles = 200;
-    // Lissajous parameters (A, B, a, b, delta)
-    const A = 0.9; // x amplitude
-    const B = 0.9; // y amplitude
-    const a = 3;   // x frequency
-    const b = 2;   // y frequency
-    const delta = Math.PI / 2; // phase difference
-    for (let i = 0; i < numCircles; i++) {
-      const t = (i / (numCircles - 1)) * 2 * Math.PI;
-      const x = A * Math.sin(a * t + delta);
-      const y = B * Math.sin(b * t);
-      // Color: cycle through hues
-      const hue = (t / (2 * Math.PI)) * 360;
-      const color = this.hslToRgba(hue, 0.7, 0.5, 0.8);
-      circles.push({
-        x: x,
-        y: y,
-        radius: 0.025,
-        color: color
-      });
-    }
-    this.updateSceneCircles(circles);
-  }
-
-  /**
-   * Create a grid pattern of circles
-   */
-  createGridScene(): void {
-    const circles: CircleScene[] = [];
-    
-    // Generate a wide grid of circles that spans multiple screen widths
-    const numColumns = 60; // More columns to span wider area
-    const numRows = 15;
-    
-    for (let i = 0; i < numColumns; i++) {
-      for (let j = 0; j < numRows; j++) {
-        // Map to a wider range: -3 to 3 (3x the normal width)
-        const x = (i / (numColumns - 1)) * 6 - 3; // Map 0-59 to -3 to 3
-        const y = (j / (numRows - 1)) * 2 - 1; // Map 0-14 to -1 to 1
-        
-        // Vary colors based on position
-        const r = (i / (numColumns - 1)) * 0.8 + 0.2;
-        const g = (j / (numRows - 1)) * 0.8 + 0.2;
-        const b = 0.5;
-        const a = 0.7;
-        
-        circles.push({
-          x: x,
-          y: y,
-          radius: 0.02 + Math.random() * 0.03, // Random radius between 0.02 and 0.05
-          color: [r, g, b, a]
-        });
-      }
-    }
-    
-    // Add some larger accent circles at key positions
-    circles.push(
-      { x: -2.5, y: 0.8, radius: 0.08, color: [1.0, 0.0, 0.0, 0.9] }, // Red circle far left
-      { x: 2.5, y: 0.8, radius: 0.08, color: [0.0, 1.0, 0.0, 0.9] },  // Green circle far right
-      { x: -2.5, y: -0.8, radius: 0.08, color: [0.0, 0.0, 1.0, 0.9] }, // Blue circle bottom far left
-      { x: 2.5, y: -0.8, radius: 0.08, color: [1.0, 1.0, 0.0, 0.9] },  // Yellow circle bottom far right
-      { x: 0.0, y: 0.0, radius: 0.12, color: [1.0, 0.0, 1.0, 0.8] }   // Magenta circle center
-    );
-    
-    this.updateSceneCircles(circles);
-  }
-
-  /**
    * Create columns of circles with the same spacing as overlay labels (8rem)
    */
-  createColumnScene(): void {
+  private createColumnCircles(): CircleScene[] {
     const circles: CircleScene[] = [];
     
     // Calculate exact spacing to match overlay labels
@@ -239,7 +107,21 @@ export class App {
       }
     }
     
-    this.updateSceneCircles(circles);
+    return circles;
+  }
+
+  /**
+   * Switch to concentric rings pattern
+   */
+  createConcentricRingsScene(): void {
+    this.updateSceneCircles(this.createConcentricRingsCircles());
+  }
+
+  /**
+   * Switch to column pattern
+   */
+  createColumnScene(): void {
+    this.updateSceneCircles(this.createColumnCircles());
   }
 
   /**
