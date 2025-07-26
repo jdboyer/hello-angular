@@ -1,9 +1,9 @@
 import { AfterViewInit, Component, ViewChild, ElementRef, HostListener } from '@angular/core';
-import { RectanglePipeline } from './rectangle-pipeline';
-import { RoundedRectanglePipeline } from './rounded-rectangle-pipeline';
-import { TexturedRectanglePipeline } from './textured-rectangle-pipeline';
-import { CirclePipeline } from './circle-pipeline';
-import { GridPipeline } from './grid-pipeline';
+import { RectanglePipeline } from '../pipelines/rectangle-pipeline';
+import { RoundedRectanglePipeline } from '../pipelines/rounded-rectangle-pipeline';
+import { TexturedRectanglePipeline } from '../pipelines/textured-rectangle-pipeline';
+import { CirclePipeline } from '../pipelines/circle-pipeline';
+import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
 
