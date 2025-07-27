@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas';
 import { createChartScene } from './chart-scene';
+import { ViewChild } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +16,8 @@ import { createChartScene } from './chart-scene';
   styleUrl: './app.css'
 })
 export class App {
+  @ViewChild(HelloCanvas) helloCanvas!: HelloCanvas;
+  
   protected readonly title = signal('hello-angular');
 
   // Create a signal for the scene
@@ -22,6 +25,9 @@ export class App {
   
   // Signal for mouse position
   protected readonly mousePosition = signal<{x: number, y: number}>({x: 0, y: 0});
+  
+  // Signal for current highlight index
+  protected readonly currentHighlightIndex = signal<number>(-1);
 
   // Computed signal to get scroll range from scene
   protected readonly scrollRangeRem = computed(() => this.scene().scrollRangeRem);
@@ -68,5 +74,20 @@ export class App {
    */
   onMousePositionChange(position: {x: number, y: number}): void {
     this.mousePosition.set(position);
+    this.highlightRandomShape();
+  }
+
+  /**
+   * Highlight a random shape when mouse moves
+   */
+  private highlightRandomShape(): void {
+    if (this.helloCanvas && this.helloCanvas.multiShapePipeline) {
+      const shapes = this.scene().circles;
+      if (shapes.length > 0) {
+        const randomIndex = Math.floor(Math.random() * shapes.length);
+        this.currentHighlightIndex.set(randomIndex);
+        this.helloCanvas.highlightShape(randomIndex);
+      }
+    }
   }
 }

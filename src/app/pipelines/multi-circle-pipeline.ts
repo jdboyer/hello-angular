@@ -23,6 +23,7 @@ export class MultiShapePipeline {
   private canvasWidthPixels: number = 1.0;
   private canvasHeightPixels: number = 1.0;
   private pxToRemRatio: number = 16.0; // Default: 16px = 1rem
+  private currentHighlightIndex: number = -1.0; // Track current highlight index
 
   constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
     this.device = device;
@@ -245,30 +246,47 @@ export class MultiShapePipeline {
             // UV coordinates are in the shape's local space
             let p = uv;
             
-            var d: f32;
+            // Calculate all SDFs first (uniform control flow)
+            let dCircle = sdCircle(p, 1.0);
+            let dSquare = sdSquare(p, 1.0);
+            let dDiamond = sdDiamond(p, 1.0);
+            let dTriangle = sdTriangle(p, 1.0);
             
-            // Select SDF based on shape type
-            if (shapeType < 0.5) {
-                // Circle
-                d = sdCircle(p, 1.0);
-            } else if (shapeType < 1.5) {
-                // Square
-                d = sdSquare(p, 1.0);
-            } else if (shapeType < 2.5) {
-                // Diamond
-                d = sdDiamond(p, 1.0);
-            } else {
-                // Triangle
-                d = sdTriangle(p, 1.0);
-            }
+            // Calculate fwidth for all SDFs in uniform control flow
+            let fwCircle = fwidth(dCircle);
+            let fwSquare = fwidth(dSquare);
+            let fwDiamond = fwidth(dDiamond);
+            let fwTriangle = fwidth(dTriangle);
+            
+            // Select SDF based on shape type using select function (uniform control flow)
+            let d = select(
+                select(
+                    select(dCircle, dSquare, shapeType >= 0.5),
+                    dDiamond, 
+                    shapeType >= 1.5
+                ),
+                dTriangle,
+                shapeType >= 2.5
+            );
+            
+            // Select corresponding fwidth
+            let fw = select(
+                select(
+                    select(fwCircle, fwSquare, shapeType >= 0.5),
+                    fwDiamond, 
+                    shapeType >= 1.5
+                ),
+                fwTriangle,
+                shapeType >= 2.5
+            );
             
             // Check if this instance is highlighted
             let isHighlighted = instanceIndex == uniforms.highlightIndex;
             
             // Create border effect
             let borderWidth = 0.05; // Border thickness (adjust as needed)
-            let fillAlpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
-            let borderAlpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d - borderWidth);
+            let fillAlpha = 1.0 - smoothstep(-fw, fw, d);
+            let borderAlpha = 1.0 - smoothstep(-fw, fw, d - borderWidth);
             
             // Border has higher opacity than fill
             let borderOpacity = min(color.a * 1.5, 1.0); // 50% more opaque than fill
@@ -276,10 +294,10 @@ export class MultiShapePipeline {
             
             // Apply highlight brightness
             let brightnessMultiplier = 1.0 + f32(isHighlighted) * 0.5; // 50% brighter when highlighted
-            let highlightedColor = vec4f(color.rgb * brightnessMultiplier, color.a);
+            var highlightedColor = vec4f(color.rgb * brightnessMultiplier, color.a);
             
             // Combine fill and border
-            let finalAlpha = fillOpacity * fillAlpha + borderOpacity * (borderAlpha - fillAlpha);
+            var finalAlpha = fillOpacity * fillAlpha + borderOpacity * (borderAlpha - fillAlpha);
             
             return vec4f(highlightedColor.rgb, finalAlpha);
         }
@@ -408,7 +426,15 @@ export class MultiShapePipeline {
    * @param highlightIndex number (instance index to highlight, -1 for no highlight)
    */
   setHighlightIndex(device: GPUDevice, highlightIndex: number) {
-    device.queue.writeBuffer(this.uniformBuffer, 16, new Float32Array([highlightIndex])); // Write just the highlight index
+    this.currentHighlightIndex = highlightIndex;
+    // Update the entire uniform buffer to ensure consistency
+    device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array([
+      this.canvasWidthPixels, 
+      this.canvasHeightPixels, 
+      this.pxToRemRatio, 
+      this.scrollOffsetInPixels,
+      this.currentHighlightIndex
+    ]));
   }
 
   /**
@@ -421,7 +447,7 @@ export class MultiShapePipeline {
       this.canvasHeightPixels, 
       this.pxToRemRatio, 
       this.scrollOffsetInPixels,
-      -1.0 // highlightIndex: -1 for no highlight
+      this.currentHighlightIndex // Preserve current highlight index
     ]));
   }
 

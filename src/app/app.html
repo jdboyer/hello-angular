@@ -20,6 +20,11 @@
     <label>Mouse Position (rem):</label>
     <span class="position-text">X: {{ mousePosition().x | number:'1.1-1' }}, Y: {{ mousePosition().y | number:'1.1-1' }}</span>
   </div>
+  
+  <div class="highlight-display">
+    <label>Highlighted Shape:</label>
+    <span class="highlight-text">{{ currentHighlightIndex() >= 0 ? 'Index ' + currentHighlightIndex() : 'None' }}</span>
+  </div>
 </div>
 
 <app-hello-canvas 

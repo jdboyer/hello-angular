@@ -44,7 +44,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   private myPath: Path2D = new Path2D(); 
 
   private adapter!: GPUAdapter | null;
-  private device!: GPUDevice;
+  public device!: GPUDevice;
   private context!: GPUCanvasContext;
   private presentationFormat!: GPUTextureFormat;
 
@@ -53,7 +53,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   private roundedRectanglePipeline!: RoundedRectanglePipeline;
   private texturedRectanglePipeline!: TexturedRectanglePipeline;
   private circlePipeline!: CirclePipeline;
-  private multiShapePipeline!: MultiShapePipeline;
+  public multiShapePipeline!: MultiShapePipeline;
   private gridPipeline!: GridPipeline;
 
   scrollRange = signal(100); // Range for scrollbar (0-1 in overlay component)
@@ -215,6 +215,18 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   updateScene(shapes: ShapeScene[]) {
     this.multiShapePipeline.setShapes(shapes);
     this.drawScene(); // Redraw with new scene
+  }
+
+  /**
+   * Highlight a specific shape by index
+   * @param highlightIndex Index of shape to highlight (-1 for no highlight)
+   */
+  highlightShape(highlightIndex: number): void {
+    //highlightIndex = 0;
+    if (this.multiShapePipeline && this.device) {
+      this.multiShapePipeline.setHighlightIndex(this.device, highlightIndex);
+      this.drawScene(); // Redraw to show the highlight
+    }
   }
 
   @HostListener('window:resize', ['$event'])
