@@ -101,22 +101,30 @@ function hslToRgba(h: number, s: number, l: number, a: number): [number, number,
 /**
  * Create chart circles based on chart data
  */
-function createChartCircles(spacingRem: number = 8): CircleScene[] {
+function createChartCircles(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8): CircleScene[] {
   const circles: CircleScene[] = [];
   
-  // Create circles based on chart data
-  // For now, using a similar pattern to column circles but adapted for chart visualization
-  const circlesPerColumn = 4;
-  const numColumns = 25; // Number of version columns to display
-  
-  for (let col = 0; col < numColumns; col++) {
-    const x = col * spacingRem;
+  // Iterate through each version column
+  chartData.versionColumns.forEach((versionColumn, columnIndex) => {
+    const baseX = columnIndex * spacingRem + 4;
     
-    for (let row = 0; row < circlesPerColumn; row++) {
-      const y = (row - circlesPerColumn / 2) * spacingRem;
+    // Track how many circles have been added for each host index in this version column
+    const hostCircleCounts = new Map<number, number>();
+    
+    // Iterate through each test result in this version column
+    versionColumn.testResults.forEach(testResult => {
+      // Get the count of circles already added for this host index in this version column
+      const circleCount = hostCircleCounts.get(testResult.hostIndex) || 0;
       
-      // Color based on column and row
-      const hue = (col * 15 + row * 30) % 360;
+      // Calculate x offset based on the number of circles already added for this host
+      const xOffset = circleCount * 0.5;
+      const x = baseX + xOffset;
+      
+      // Get the y position from the corresponding host grid line
+      const y = (1 - hostGridLines[testResult.hostIndex]) * 60;
+      
+      // Color based on test result value (1-5)
+      const hue = (testResult.result * 60) % 360; // Different hue for each result value
       const saturation = 0.7;
       const lightness = 0.5;
       const alpha = 0.8;
@@ -126,11 +134,14 @@ function createChartCircles(spacingRem: number = 8): CircleScene[] {
       circles.push({
         x: x,
         y: y,
-        radius: 0.48 + (row / circlesPerColumn) * 0.32,
+        radius: 0.48 + (testResult.result / 5) * 0.32, // Radius based on test result value
         color: color
       });
-    }
-  }
+      
+      // Increment the count for this host index
+      hostCircleCounts.set(testResult.hostIndex, circleCount + 1);
+    });
+  });
   
   return circles;
 }
@@ -158,10 +169,13 @@ export function createChartScene(spacingRem: number = 8): Scene {
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
   
+  // Extract version strings from chartData.versionColumns
+  const xAxisLabels = chartData.versionColumns.map(column => column.version);
+  
   return {
     gridLines: hostGridLines,
-    circles: createChartCircles(spacingRem),
-    xAxisLabels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
+    circles: createChartCircles(chartData, hostGridLines, spacingRem),
+    xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
     spacing: spacingRem,
