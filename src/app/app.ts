@@ -87,10 +87,10 @@ export class App {
       const match = mousePos.nearestYAxisLabel.match(/^([^(]+)/);
       if (match) {
         const hostname = match[1].trim();
-        const success = this.helloCanvas.highlightShapeByHostAndVersion(hostname, mousePos.version);
+        const success = this.helloCanvas.highlightShapeByHostAndVersion(hostname, mousePos.version, mousePos.x);
         if (success) {
           // Find the instance index to update the display
-          const instanceIndex = this.helloCanvas.findShapeInstanceIndex(hostname, mousePos.version);
+          const instanceIndex = this.helloCanvas.findShapeInstanceIndex(hostname, mousePos.version, mousePos.x);
           this.currentHighlightIndex.set(instanceIndex);
         } else {
           // If no shape found, clear the highlight

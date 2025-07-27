@@ -284,9 +284,10 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    * Find the instance index of a shape given a host and version
    * @param hostname The hostname to search for
    * @param version The version to search for
+   * @param xPosition Optional X position to disambiguate between multiple shapes
    * @returns The instance index of the shape, or -1 if not found
    */
-  public findShapeInstanceIndex(hostname: string, version: string): number {
+  public findShapeInstanceIndex(hostname: string, version: string, xPosition?: number): number {
     const scene = this.scene();
     
     // Find the host index from gridLineLabels
@@ -309,42 +310,78 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     // Calculate the expected Y position for this host
     const expectedY = (1 - scene.gridLines[hostIndex]) * 60;
     
-    // Calculate the expected X position for this version
+    // Calculate the base X position for this version
     const baseX = versionIndex * scene.spacing + 4;
     
-    // Find the shape that matches both the host (Y position) and version (X position)
-    // We need to account for multiple shapes per host-version combination
+    console.log(`Looking for host: ${hostname}, version: ${version}`);
+    console.log(`Host index: ${hostIndex}, Version index: ${versionIndex}`);
+    console.log(`Expected Y: ${expectedY}, Base X: ${baseX}`);
+    console.log(`Mouse X position: ${xPosition}`);
+    
+    // Find all shapes that match both the host (Y position) and version (base X position)
     const shapes = scene.circles;
-    let instanceIndex = -1;
+    const matchingShapes: { index: number; xOffset: number; shapeX: number }[] = [];
     
     for (let i = 0; i < shapes.length; i++) {
       const shape = shapes[i];
       
-      // Check if this shape is in the correct version column (X position)
-      const shapeVersionIndex = Math.floor((shape.x - 4) / scene.spacing);
-      if (shapeVersionIndex !== versionIndex) {
+      // Check if this shape is in the correct version column (base X position)
+      const shapeBaseX = Math.floor((shape.x - 4) / scene.spacing) * scene.spacing + 4;
+      if (Math.abs(shapeBaseX - baseX) > 0.1) {
         continue;
       }
       
       // Check if this shape is for the correct host (Y position)
       // Allow for small floating point differences
       if (Math.abs(shape.y - expectedY) < 0.1) {
-        instanceIndex = i;
-        break;
+        // Calculate the x offset from base position
+        const xOffset = shape.x - baseX;
+        matchingShapes.push({ index: i, xOffset, shapeX: shape.x });
+        console.log(`Found matching shape ${i}: x=${shape.x}, xOffset=${xOffset}`);
       }
     }
     
-    return instanceIndex;
+    console.log(`Found ${matchingShapes.length} matching shapes`);
+    
+    if (matchingShapes.length === 0) {
+      return -1;
+    }
+    
+    // If no X position provided or only one shape, return the first match
+    if (!xPosition || matchingShapes.length === 1) {
+      console.log(`Returning first match: ${matchingShapes[0].index}`);
+      return matchingShapes[0].index;
+    }
+    
+    // If X position is provided, find the closest shape based on X offset
+    const mouseXOffset = xPosition - baseX + 4;
+    console.log(`Mouse X offset from base: ${mouseXOffset}`);
+    
+    let closestIndex = matchingShapes[0].index;
+    let minDistance = Math.abs(matchingShapes[0].xOffset - mouseXOffset);
+    
+    for (let i = 1; i < matchingShapes.length; i++) {
+      const distance = Math.abs(matchingShapes[i].xOffset - mouseXOffset);
+      console.log(`Shape ${matchingShapes[i].index}: xOffset=${matchingShapes[i].xOffset}, distance=${distance}`);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = matchingShapes[i].index;
+      }
+    }
+    
+    console.log(`Selected shape ${closestIndex} with distance ${minDistance}`);
+    return closestIndex;
   }
 
   /**
    * Highlight a shape by host and version
    * @param hostname The hostname to search for
    * @param version The version to search for
+   * @param xPosition Optional X position to disambiguate between multiple shapes
    * @returns true if the shape was found and highlighted, false otherwise
    */
-  public highlightShapeByHostAndVersion(hostname: string, version: string): boolean {
-    const instanceIndex = this.findShapeInstanceIndex(hostname, version);
+  public highlightShapeByHostAndVersion(hostname: string, version: string, xPosition?: number): boolean {
+    const instanceIndex = this.findShapeInstanceIndex(hostname, version, xPosition);
     if (instanceIndex !== -1) {
       this.highlightShape(instanceIndex);
       return true;
