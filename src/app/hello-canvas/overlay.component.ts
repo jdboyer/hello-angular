@@ -73,11 +73,7 @@ export class OverlayComponent {
     return currentScrollDistancePixels;
   }
 
-  getMaxVisibleItems(): number {
-    const canvasWidth = this.canvasWidth();
-    const spacingInPixels = this.convertRemToPixels(this.textSpacing);
-    return Math.max(1, Math.floor(canvasWidth / spacingInPixels));
-  }
+
 
   getThumbWidth(): number {
     const canvasWidth = this.canvasWidth();
@@ -98,7 +94,7 @@ export class OverlayComponent {
     const all = this.textList();
     const canvasWidth = this.canvasWidth();
     const spacingInPixels = this.convertRemToPixels(this.textSpacing);
-    const maxVisibleItems = Math.max(1, Math.floor(canvasWidth / spacingInPixels));
+    const maxVisibleItems = Math.max(1, Math.floor(canvasWidth / spacingInPixels) + 1);
     const scrollRange = this.scrollRange();
     const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
     const canvasWidthRem = canvasWidth / pxToRemRatio;
