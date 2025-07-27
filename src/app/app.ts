@@ -8,6 +8,8 @@ import { MatSliderModule } from '@angular/material/slider';
 //import { HelloD3 } from './hello-d3/hello-d3';
 import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas'
 
+
+
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, HelloCanvas, FormsModule, DecimalPipe, MatFormFieldModule, MatInputModule, MatSliderModule],
