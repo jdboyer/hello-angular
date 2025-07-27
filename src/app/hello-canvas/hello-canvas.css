@@ -37,17 +37,11 @@
     white-space: nowrap;
 }
 
-.y-axis-label .hostname {
+.y-axis-label .y-axis-text {
     display: block;
     font-weight: bold;
-    margin-bottom: 0.1rem;
-}
-
-.y-axis-label .platform-info {
-    display: block;
-    font-size: 0.65rem;
-    color: #ccc;
-    opacity: 0.8;
+    font-size: 0.75rem;
+    color: white;
 }
 
 .chart-container {

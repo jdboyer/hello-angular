@@ -1,11 +1,10 @@
 <div class="example-container">
   <div class="left-sidebar">
     <div class="y-axis-labels">
-      @for (host of hostRows(); track host.hostname; let i = $index) {
+      @for (label of gridLineLabelsList(); track $index; let i = $index) {
         <div class="y-axis-label" 
              [style.top]="getYAxisLabelPosition(i) + '%'">
-          <span class="hostname">{{ host.hostname }}</span>
-          <span class="platform-info">{{ host.platform }}{{ host.subplatform ? ' - ' + host.subplatform : '' }}</span>
+          <span class="y-axis-text">{{ label }}</span>
         </div>
       }
     </div>

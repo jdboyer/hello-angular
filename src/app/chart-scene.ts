@@ -48,6 +48,8 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
       }
     }
   }
+  console.log(hostRows);
+  console.log(gridLines);
   
   return gridLines;
 }
@@ -134,17 +136,33 @@ function createChartCircles(spacingRem: number = 8): CircleScene[] {
 }
 
 /**
+ * Create grid line labels from host rows
+ */
+function createGridLineLabels(hostRows: HostRow[]): string[] {
+  // Create labels in reverse order to match the top-to-bottom grid line positioning
+  return hostRows.map(host => {
+    if (host.subplatform) {
+      return `${host.hostname} (${host.platform} - ${host.subplatform})`;
+    } else {
+      return `${host.hostname} (${host.platform})`;
+    }
+  }).reverse();
+}
+
+/**
  * Create a chart scene with custom spacing
  */
 export function createChartScene(spacingRem: number = 8): Scene {
   const monthLabels = createMonthLabels();
   const chartData = createSampleChartScene();
   const hostGridLines = createHostGridLines(chartData.hostRows);
+  const gridLineLabels = createGridLineLabels(chartData.hostRows);
   
   return {
     gridLines: hostGridLines,
     circles: createChartCircles(spacingRem),
-    labels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
+    xAxisLabels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
+    gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
     spacing: spacingRem,
     overlayXOffset: 4

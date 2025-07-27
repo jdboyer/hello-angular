@@ -19,7 +19,8 @@ export interface CircleScene {
 export interface Scene {
   gridLines: number[];
   circles: CircleScene[]; // Array of circles to render
-  labels: string[]; // Array of strings to use as labels
+  xAxisLabels: string[]; // Array of strings to use as X-axis labels
+  gridLineLabels: string[]; // Array of strings to use as Y-axis labels for grid lines
   bottomLabels: { text: string; xOffset: number }[]; // Array of bottom labels with x offsets in rem
   spacing: number; // Spacing in rem units for both overlay text and circle columns
   overlayXOffset: number; // X offset in rem units to shift all overlay text to the right
@@ -59,7 +60,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   scrollRange = signal(100); // Range for scrollbar (0-1 in overlay component)
   scrollPosition = signal(0);
   canvasWidth = signal(500);
-  textList = signal<string[]>([]); // Will be populated from scene labels
+  textList = signal<string[]>([]); // Will be populated from scene xAxisLabels
+  gridLineLabelsList = signal<string[]>([]); // Will be populated from scene gridLineLabels
   bottomLabelsList = signal<{ text: string; xOffset: number }[]>([]); // Will be populated from scene bottomLabels
   offsetX = signal(0);
   overlayXOffset = signal(0); // X offset in rem units to shift all overlay text
@@ -90,7 +92,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     const currentScene = this.scene();
     
     // Always update labels and bottom labels, even if pipelines aren't ready
-    this.textList.set(currentScene.labels);
+    this.textList.set(currentScene.xAxisLabels);
+    this.gridLineLabelsList.set(currentScene.gridLineLabels);
     console.log('Setting bottom labels:', currentScene.bottomLabels);
     this.bottomLabelsList.set(currentScene.bottomLabels);
     this.overlayXOffset.set(currentScene.overlayXOffset);
@@ -198,9 +201,10 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    */
   getYAxisLabelPosition(index: number): number {
     const gridLines = this.scene().gridLines;
-    if (index >= 0 && index < gridLines.length) {
+    const gridLineLabels = this.scene().gridLineLabels;
+    if (index >= 0 && index < gridLines.length && index < gridLineLabels.length) {
       // Convert from 0-1 range to percentage (0-100)
-      return gridLines[index] * 100;
+      return 100 - gridLines[index] * 100;
     }
     return 0;
   }
@@ -304,8 +308,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.multiCirclePipeline.setCircles(currentScene.circles)
     
     // Set the labels from the scene
-    this.textList.set(currentScene.labels);
-    console.log(`Setting ${currentScene.labels.length} labels from scene: ${currentScene.labels.slice(0, 5).join(', ')}...`);
+    this.textList.set(currentScene.xAxisLabels);
+    console.log(`Setting ${currentScene.xAxisLabels.length} labels from scene: ${currentScene.xAxisLabels.slice(0, 5).join(', ')}...`);
     
     //this.setupCircles();
     // textured squares for symbols
