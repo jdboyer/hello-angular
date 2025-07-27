@@ -21,6 +21,7 @@ export interface TestResult {
 export interface VersionColumn {
   version: string;
   testResults: TestResult[];
+  timestamp: Date;
 }
 
 export interface TestResultMapping {

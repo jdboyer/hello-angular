@@ -18,12 +18,13 @@
 }
 
 .top-tick-container {
-  top: 5rem;
+  top: 3rem;
   width: 0px;
 }
 
 .bottom-tick-container {
-  bottom: 1rem;
+  bottom: 3rem;
+  width: 0px;
 }
 
 .tick-mark {
@@ -39,8 +40,8 @@
 }
 
 .bottom-tick {
-  height: 8px;
-  margin-bottom: 4px; /* Space between tick and label */
+  height: 12px;
+  margin-bottom: 20px; /* Space between tick and label */
   background: #999;
 }
 .overlay-text-row {
@@ -83,10 +84,13 @@
   white-space: nowrap;
   font-weight: 500;
   text-shadow: 0 1px 2px #000;
-  transform: translateY(0px) translateX(0px);
+  transform: translateY(-8px) translateX(8px);
   color: #999;
   font-size: 10pt;
   z-index: 25;
+  font-family: monospace;
+  text-align: left;
+  rotate: 50deg;
 }
 .overlay-scrollbar {
   position: absolute;

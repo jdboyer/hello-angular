@@ -187,6 +187,15 @@ export function createVersionColumns(hostRows: HostRow[]): VersionColumn[] {
     const version = `v1.0.${versionNum}`;
     const testResults: TestResult[] = [];
     
+    // Calculate timestamp: linear progression from Jan 2024 to Aug 2025
+    // Jan 2024 = 0, Aug 2025 = 99 (100 versions total)
+    const startDate = new Date(2024, 0, 1); // January 1, 2024
+    const endDate = new Date(2025, 7, 1);   // August 1, 2025
+    const totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const daysPerVersion = totalDays / 99; // 99 intervals for 100 versions
+    
+    const timestamp = new Date(startDate.getTime() + (versionNum - 1) * daysPerVersion * 24 * 60 * 60 * 1000);
+    
     // Determine how many total test results this version should have (5-30)
     const totalTestResults = Math.floor(Math.random() * 26) + 5; // 5 to 30
     
@@ -227,7 +236,8 @@ export function createVersionColumns(hostRows: HostRow[]): VersionColumn[] {
     
     versionColumns.push({
       version,
-      testResults
+      testResults,
+      timestamp
     });
   }
   

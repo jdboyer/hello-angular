@@ -68,11 +68,11 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
   }
   
   // Calculate available space for hosts (0.15 to 0.8 = 0.65 total space)
-  const availableSpace = 0.8 - totalGaps;
+  const availableSpace = 0.78 - totalGaps;
   const hostSpacing = availableSpace / hostRows.length;
   
   // Calculate grid line positions
-  let currentY = 0.07; // Start at 0.1
+  let currentY = 0.13; // Start at 0.1
   
   for (let i = 0; i < hostRows.length; i++) {
     const currentHost = hostRows[i];
@@ -102,25 +102,37 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
 }
 
 /**
- * Create month labels with hardcoded random rem offsets
+ * Create month labels based on version column timestamps
  */
-function createMonthLabels(): { text: string; xOffset: number }[] {
-  const months = [
-    'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25',
-    'Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25'
-  ];
-  
-  // Hardcoded random offsets from 0 to 200 (generated once, sorted from smallest to largest)
-  const hardcodedOffsets = [23, 41, 47, 78, 92, 134, 156, 167, 183, 198];
-  
+function createMonthLabels(chartData: ChartScene, spacingRem: number, overlayXOffset: number): { text: string; xOffset: number }[] {
   const labels: { text: string; xOffset: number }[] = [];
+  const seenMonths = new Set<string>();
   
-  for (let i = 0; i < months.length; i++) {
-    labels.push({
-      text: months[i],
-      xOffset: hardcodedOffsets[i]
-    });
-  }
+  // Iterate through version columns
+  chartData.versionColumns.forEach((versionColumn, columnIndex) => {
+    const timestamp = versionColumn.timestamp;
+    const monthKey = `${timestamp.getFullYear()}-${timestamp.getMonth()}`;
+    
+    // If this is the first time we've seen this month, add a label
+    if (!seenMonths.has(monthKey)) {
+      seenMonths.add(monthKey);
+      
+      // Format the month label (e.g., "Jan 2024", "Feb 2024", etc.)
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthName = monthNames[timestamp.getMonth()];
+      const year = timestamp.getFullYear().toString(); // Get full year
+      const monthLabel = `${monthName} ${year}`;
+      
+      // Calculate x offset based on column index
+      const xOffset = spacingRem * columnIndex;
+      
+      labels.push({
+        text: monthLabel,
+        xOffset: xOffset
+      });
+    }
+  });
   
   return labels;
 }
@@ -203,11 +215,11 @@ function createGridLineLabels(hostRows: HostRow[]): string[] {
  * Create a chart scene with custom spacing
  */
 export function createChartScene(spacingRem: number = 8, scrollRangeRem: number = 200): Scene {
-  const monthLabels = createMonthLabels();
   const chartData = createSampleChartScene();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
   const overlayXOffset = 4;
+  const monthLabels = createMonthLabels(chartData, spacingRem, overlayXOffset);
   
   // Extract version strings from chartData.versionColumns
   const xAxisLabels = chartData.versionColumns.map(column => column.version);
@@ -229,11 +241,11 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
  * Process a ChartScene into a Scene for rendering
  */
 export function processChartScene(chartData: ChartScene, spacingRem: number = 4, scrollRangeRem: number = 200): Scene {
-  const monthLabels = createMonthLabels();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
   scrollRangeRem = spacingRem * chartData.versionColumns.length + 20;
   const overlayXOffset = 1;
+  const monthLabels = createMonthLabels(chartData, spacingRem, overlayXOffset);
   
   // Extract version strings from chartData.versionColumns
   const xAxisLabels = chartData.versionColumns.map(column => column.version);
