@@ -5,7 +5,7 @@ import { DecimalPipe } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
-import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas';
+import { HelloCanvas, Scene, CircleScene, MousePosition } from './hello-canvas/hello-canvas';
 import { createChartScene } from './chart-scene';
 import { ViewChild } from '@angular/core';
 
@@ -24,7 +24,7 @@ export class App {
   protected readonly scene = signal<Scene>(createChartScene(8, 200));
   
   // Signal for mouse position
-  protected readonly mousePosition = signal<{x: number, y: number}>({x: 0, y: 0});
+  protected readonly mousePosition = signal<MousePosition>({x: 0, y: 0, nearestYAxisLabel: ''});
   
   // Signal for current highlight index
   protected readonly currentHighlightIndex = signal<number>(-1);
@@ -72,7 +72,7 @@ export class App {
   /**
    * Handle mouse position changes from the canvas component
    */
-  onMousePositionChange(position: {x: number, y: number}): void {
+  onMousePositionChange(position: MousePosition): void {
     this.mousePosition.set(position);
     this.highlightRandomShape();
   }

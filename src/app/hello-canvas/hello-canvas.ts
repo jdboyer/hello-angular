@@ -17,6 +17,12 @@ export interface CircleScene {
   color: [number, number, number, number]; // RGBA values
 }
 
+export interface MousePosition {
+  x: number;
+  y: number;
+  nearestYAxisLabel: string;
+}
+
 export interface Scene {
   gridLines: number[];
   circles: ShapeScene[]; // Array of shapes to render (using circles property name for backward compatibility)
@@ -24,7 +30,7 @@ export interface Scene {
   gridLineLabels: string[]; // Array of strings to use as Y-axis labels for grid lines
   bottomLabels: { text: string; xOffset: number }[]; // Array of bottom labels with x offsets in rem
   spacing: number; // Spacing in rem units for both overlay text and shape columns
-  overlayXOffset: number; // X offset in rem units to shift all overlay text to the right
+  overlayXOffset: number; // X offset in rem units to shift all overlay text
   scrollRangeRem: number; // Total scrollable width in rem units
 }
 
@@ -69,7 +75,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   scrollRangeRem = computed(() => this.scene().scrollRangeRem);
   
   // Output for mouse position changes
-  mousePositionChange = output<{x: number, y: number}>();
+  mousePositionChange = output<MousePosition>();
   
   // Computed signal for text spacing from scene
   textSpacing = computed(() => this.scene().spacing);
@@ -191,8 +197,56 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    * @param position Mouse position {x, y}
    */
   onMousePositionChange(position: {x: number, y: number}) {
-    // Emit the mouse position to the parent component
-    this.mousePositionChange.emit(position);
+    // Find the nearest y-axis label based on Y position
+    const nearestLabel = this.getNearestYAxisLabel(position.y);
+    
+    // Emit the mouse position with the nearest label to the parent component
+    this.mousePositionChange.emit({
+      x: position.x,
+      y: position.y,
+      nearestYAxisLabel: nearestLabel
+    });
+  }
+
+  /**
+   * Get the nearest y-axis label based on Y position
+   * @param yPosition Y position in rem units
+   * @returns The nearest y-axis label or empty string if no labels
+   */
+  private getNearestYAxisLabel(yPosition: number): string {
+    const gridLines = this.scene().gridLines;
+    const gridLineLabels = this.scene().gridLineLabels;
+    
+    if (gridLines.length === 0 || gridLineLabels.length === 0) {
+      return '';
+    }
+    
+    // Convert Y position to percentage (0-100) to match grid line positioning
+    // The canvas is 10rem height and centered in the 60rem container
+    const containerHeightRem = 60; // From .example-container height
+    const canvasHeightRem = 60; // From .my-canvas height
+    const canvasTopY = 0;
+    
+    console.log(yPosition);
+    // Convert Y position to percentage relative to canvas
+    const yPercentage = ((yPosition + canvasTopY) / canvasHeightRem) * 100;
+    
+    // Find the nearest grid line
+    let nearestIndex = 0;
+    let minDistance = Math.abs(yPercentage - (100 - gridLines[0] * 100));
+    
+    for (let i = 1; i < gridLines.length; i++) {
+      const gridLineY = 100 - gridLines[i] * 100;
+      const distance = Math.abs(yPercentage - gridLineY);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestIndex = i;
+      }
+    }
+    
+    // Return the corresponding label
+    return gridLineLabels[nearestIndex] || '';
   }
 
   /**

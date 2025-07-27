@@ -98,7 +98,7 @@ export class OverlayComponent {
     // Y position: relative to top of canvas (y = 0 at top)
     // The canvas is 10rem height and centered in the 60rem container
     const containerHeightRem = 60; // From .example-container height
-    const canvasHeightRem = 10; // From .my-canvas height
+    const canvasHeightRem = 60; // From .my-canvas height
     const canvasTopY = (containerHeightRem - canvasHeightRem) / 2; // 25rem from container top
     const sceneY = yRem - canvasTopY;
     

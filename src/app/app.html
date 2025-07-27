@@ -17,8 +17,8 @@
 
   
   <div class="mouse-position-display">
-    <label>Mouse Position (rem):</label>
-    <span class="position-text">X: {{ mousePosition().x | number:'1.1-1' }}, Y: {{ mousePosition().y | number:'1.1-1' }}</span>
+    <label>Mouse Position:</label>
+    <span class="position-text">X: {{ mousePosition().x / 8 | number:'1.1-1' }}, Host: {{ mousePosition().nearestYAxisLabel || 'None' }}</span>
   </div>
   
   <div class="highlight-display">
