@@ -1,6 +1,6 @@
-import { Scene, CircleScene } from './hello-canvas/hello-canvas';
-import { ChartScene, createSampleChartScene, createVersionColumns, HostRow } from './chart-helper';
-import { ShapeScene } from './pipelines/multi-circle-pipeline';
+import { Scene, CircleScene, ChartScene, HostRow } from './hello-canvas';
+import { createSampleChartScene, createVersionColumns } from '../chart-helper';
+import { ShapeScene } from '../pipelines/multi-circle-pipeline';
 
 /**
  * Create grid line positions for hostRows with proper spacing
@@ -185,6 +185,30 @@ function createGridLineLabels(hostRows: HostRow[]): string[] {
 export function createChartScene(spacingRem: number = 8, scrollRangeRem: number = 200): Scene {
   const monthLabels = createMonthLabels();
   const chartData = createSampleChartScene();
+  const hostGridLines = createHostGridLines(chartData.hostRows);
+  const gridLineLabels = createGridLineLabels(chartData.hostRows);
+  
+  // Extract version strings from chartData.versionColumns
+  const xAxisLabels = chartData.versionColumns.map(column => column.version);
+  
+  return {
+    gridLines: hostGridLines,
+    circles: createChartShapes(chartData, hostGridLines, spacingRem),
+    xAxisLabels: xAxisLabels,
+    gridLineLabels: gridLineLabels,
+    bottomLabels: monthLabels,
+    spacing: spacingRem,
+    overlayXOffset: 4,
+    scrollRangeRem: scrollRangeRem,
+    chartScene: chartData // Include the original chart data
+  };
+}
+
+/**
+ * Process a ChartScene into a Scene for rendering
+ */
+export function processChartScene(chartData: ChartScene, spacingRem: number = 8, scrollRangeRem: number = 200): Scene {
+  const monthLabels = createMonthLabels();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
   

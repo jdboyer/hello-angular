@@ -1,24 +1,7 @@
 
-export interface HostRow {
-  platform: string;
-  subplatform: string;
-  hostname: string;
-}
 
-export interface TestResult {
-  result: number;
-  hostIndex: number;
-}
 
-export interface VersionColumn {
-  version: string;
-  testResults: TestResult[];
-}
-
-export interface ChartScene {
-  hostRows: HostRow[];
-  versionColumns: VersionColumn[];
-}
+import { ChartScene, HostRow, TestResult, VersionColumn } from './hello-canvas/hello-canvas';
 
 // Platform and subplatform definitions
 export const PLATFORMS = {

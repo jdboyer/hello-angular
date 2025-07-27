@@ -7,8 +7,29 @@ import { MultiShapePipeline } from '../pipelines/multi-circle-pipeline';
 import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
-import { HostRow, ChartScene } from '../chart-helper';
 import { ShapeScene } from '../pipelines/multi-circle-pipeline';
+import { createChartScene, processChartScene } from './chart-scene';
+
+export interface HostRow {
+  platform: string;
+  subplatform: string;
+  hostname: string;
+}
+
+export interface TestResult {
+  result: number;
+  hostIndex: number;
+}
+
+export interface VersionColumn {
+  version: string;
+  testResults: TestResult[];
+}
+
+export interface ChartScene {
+  hostRows: HostRow[];
+  versionColumns: VersionColumn[];
+}
 
 export interface CircleScene {
   x: number;        // X position in rem units
@@ -45,8 +66,15 @@ export interface Scene {
 export class HelloCanvas implements AfterViewInit, OnDestroy {
   @ViewChild('drawingCanvas') canvas!: ElementRef<HTMLCanvasElement>;
   
-  // Input signal for the scene
-  scene = input.required<Scene>();
+  // Input signal for the chart scene
+  chartScene = input.required<ChartScene>();
+  
+  // Default spacing and scroll range
+  spacing = signal(8);
+  scrollRangeRem = signal(200);
+  
+  // Computed signal to process ChartScene into Scene
+  scene = computed(() => processChartScene(this.chartScene(), this.spacing(), this.scrollRangeRem()));
   
   //private context!: CanvasRenderingContext2D; // Stores the 2D rendering context
   private myPath: Path2D = new Path2D(); 
@@ -72,9 +100,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   bottomLabelsList = signal<{ text: string; xOffset: number }[]>([]); // Will be populated from scene bottomLabels
   offsetX = signal(0);
   overlayXOffset = signal(0); // X offset in rem units to shift all overlay text
-  
-  // Computed signal for scroll range from scene
-  scrollRangeRem = computed(() => this.scene().scrollRangeRem);
   
   // Output for mouse position changes
   mousePositionChange = output<MousePosition>();

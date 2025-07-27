@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { HelloCanvas, Scene } from './hello-canvas/hello-canvas';
-import { createChartScene } from './chart-scene';
+import { HelloCanvas, ChartScene } from './hello-canvas/hello-canvas';
+import { createSampleChartScene } from './chart-helper';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +12,6 @@ import { createChartScene } from './chart-scene';
 export class App {
   protected readonly title = signal('hello-angular');
 
-  // Create a signal for the scene
-  protected readonly scene = signal<Scene>(createChartScene(8, 200));
+  // Create a signal for the chart scene
+  protected readonly chartScene = signal<ChartScene>(createSampleChartScene());
 }
