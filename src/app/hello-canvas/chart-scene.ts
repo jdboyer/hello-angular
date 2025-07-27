@@ -145,13 +145,15 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
       // 1 = Circle, 2 = Square, 3 = Diamond, 4 = Triangle, 5 = Circle (cycle back)
       const shapeType = (testResult.result - 1) % 4;
       
+      // Store the global test result index in the test result object
+      testResult.globalTestResultIndex = globalTestResultIndex;
+      
       shapes.push({
         x: x,
         y: y,
         radius: 0.48 + (testResult.result / 5) * 0.32, // Radius based on test result value
         color: color,
-        shapeType: shapeType,
-        testResultIndex: globalTestResultIndex // Store the global test result index
+        shapeType: shapeType
       });
       
       // Increment the count for this host index

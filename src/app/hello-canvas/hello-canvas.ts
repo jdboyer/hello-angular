@@ -19,6 +19,7 @@ export interface HostRow {
 export interface TestResult {
   result: number;
   hostIndex: number;
+  globalTestResultIndex?: number;
 }
 
 export interface VersionColumn {
@@ -342,6 +343,12 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    */
   public findShapeInstanceIndex(hostname: string, version: string, xPosition?: number): number {
     const scene = this.scene();
+    const chartScene = scene.chartScene;
+    
+    if (!chartScene) {
+      console.error('Chart scene data not available');
+      return -1;
+    }
     
     // Find the host index from gridLineLabels
     const hostIndex = scene.gridLineLabels.findIndex(label => {
@@ -360,70 +367,59 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
       return -1;
     }
     
-    // Calculate the expected Y position for this host
-    const expectedY = (1 - scene.gridLines[hostIndex]) * 60;
-    
-    // Calculate the base X position for this version
-    const baseX = versionIndex * scene.spacing + 4;
-    
-    console.log(`Looking for host: ${hostname}, version: ${version}`);
-    console.log(`Host index: ${hostIndex}, Version index: ${versionIndex}`);
-    console.log(`Expected Y: ${expectedY}, Base X: ${baseX}`);
-    console.log(`Mouse X position: ${xPosition}`);
-    
-    // Find all shapes that match both the host (Y position) and version (base X position)
-    const shapes = scene.circles;
-    const matchingShapes: { index: number; xOffset: number; shapeX: number }[] = [];
-    
-    for (let i = 0; i < shapes.length; i++) {
-      const shape = shapes[i];
-      
-      // Check if this shape is in the correct version column (base X position)
-      const shapeBaseX = Math.floor((shape.x - 4) / scene.spacing) * scene.spacing + 4;
-      if (Math.abs(shapeBaseX - baseX) > 0.1) {
-        continue;
-      }
-      
-      // Check if this shape is for the correct host (Y position)
-      // Allow for small floating point differences
-      if (Math.abs(shape.y - expectedY) < 0.1) {
-        // Calculate the x offset from base position
-        const xOffset = shape.x - baseX;
-        matchingShapes.push({ index: i, xOffset, shapeX: shape.x });
-        console.log(`Found matching shape ${i}: x=${shape.x}, xOffset=${xOffset}`);
-      }
-    }
-    
-    console.log(`Found ${matchingShapes.length} matching shapes`);
-    
-    if (matchingShapes.length === 0) {
+    // Get the version column for this version
+    const versionColumn = chartScene.versionColumns[versionIndex];
+    if (!versionColumn) {
       return -1;
     }
     
-    // If no X position provided or only one shape, return the first match
-    if (!xPosition || matchingShapes.length === 1) {
-      console.log(`Returning first match: ${matchingShapes[0].index}`);
-      return matchingShapes[0].index;
+    // Find all test results for this host in this version column
+    const testResultsForHost = versionColumn.testResults.filter(testResult => testResult.hostIndex === hostIndex);
+    
+    if (testResultsForHost.length === 0) {
+      return -1;
     }
     
-    // If X position is provided, find the closest shape based on X offset
-    const mouseXOffset = xPosition - baseX + 4;
-    console.log(`Mouse X offset from base: ${mouseXOffset}`);
-    
-    let closestIndex = matchingShapes[0].index;
-    let minDistance = Math.abs(matchingShapes[0].xOffset - mouseXOffset);
-    
-    for (let i = 1; i < matchingShapes.length; i++) {
-      const distance = Math.abs(matchingShapes[i].xOffset - mouseXOffset);
-      console.log(`Shape ${matchingShapes[i].index}: xOffset=${matchingShapes[i].xOffset}, distance=${distance}`);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIndex = matchingShapes[i].index;
+    // If only one test result, return its corresponding shape index
+    if (testResultsForHost.length === 1) {
+      const globalTestResultIndex = testResultsForHost[0].globalTestResultIndex;
+      if (globalTestResultIndex !== undefined) {
+        return globalTestResultIndex;
       }
     }
     
-    console.log(`Selected shape ${closestIndex} with distance ${minDistance}`);
-    return closestIndex;
+    // If multiple test results and X position is provided, find the closest one
+    if (xPosition !== undefined) {
+      // Calculate the base X position for this version
+      const baseX = versionIndex * scene.spacing + 4;
+      const mouseXOffset = xPosition - baseX + 4;
+      
+      let closestTestResult = testResultsForHost[0];
+      let minDistance = Math.abs(0 - mouseXOffset); // First shape has offset 0
+      
+      for (let i = 1; i < testResultsForHost.length; i++) {
+        const shapeOffset = i * 0.5; // Each additional shape is offset by 0.5
+        const distance = Math.abs(shapeOffset - mouseXOffset);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestTestResult = testResultsForHost[i];
+        }
+      }
+      
+      const globalTestResultIndex = closestTestResult.globalTestResultIndex;
+      if (globalTestResultIndex !== undefined) {
+        return globalTestResultIndex;
+      }
+    }
+    
+    // If no X position provided or no closest match found, return the first test result's shape index
+    const firstGlobalIndex = testResultsForHost[0].globalTestResultIndex;
+    if (firstGlobalIndex !== undefined) {
+      return firstGlobalIndex;
+    }
+    
+    return -1;
   }
 
   /**
