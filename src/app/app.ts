@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { HelloCanvas, Scene, MousePosition } from './hello-canvas/hello-canvas';
+import { HelloCanvas, Scene } from './hello-canvas/hello-canvas';
 import { createChartScene } from './chart-scene';
 
 @Component({
@@ -14,14 +14,4 @@ export class App {
 
   // Create a signal for the scene
   protected readonly scene = signal<Scene>(createChartScene(8, 200));
-  
-  // Signal for mouse position
-  protected readonly mousePosition = signal<MousePosition>({x: 0, y: 0, nearestYAxisLabel: '', version: ''});
-
-  /**
-   * Handle mouse position changes from the canvas component
-   */
-  onMousePositionChange(position: MousePosition): void {
-    this.mousePosition.set(position);
-  }
 }
