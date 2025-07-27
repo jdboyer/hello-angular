@@ -27,9 +27,15 @@ export interface VersionColumn {
   testResults: TestResult[];
 }
 
+export interface TestResultMapping {
+  shapeType: number; // 0 = Circle, 1 = Square, 2 = Diamond, 3 = Triangle
+  color: [number, number, number, number]; // RGBA values
+}
+
 export interface ChartScene {
   hostRows: HostRow[];
   versionColumns: VersionColumn[];
+  testResultMappings?: Map<number, TestResultMapping>; // Optional mapping, defaults will be used if not provided
 }
 
 export interface CircleScene {

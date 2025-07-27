@@ -1,6 +1,46 @@
-import { Scene, CircleScene, ChartScene, HostRow } from './hello-canvas';
+import { Scene, CircleScene, ChartScene, HostRow, TestResultMapping } from './hello-canvas';
 import { createSampleChartScene, createVersionColumns } from '../chart-helper';
 import { ShapeScene } from '../pipelines/multi-circle-pipeline';
+
+/**
+ * Create default test result mappings
+ * 1 = green circle, 2 = yellow triangle, 3 = red square, 4 = teal diamond, 5 = white triangle
+ */
+function createDefaultTestResultMappings(): Map<number, TestResultMapping> {
+  const mappings = new Map<number, TestResultMapping>();
+  
+  // 1 = green circle
+  mappings.set(1, {
+    shapeType: 0, // Circle
+    color: [0.0, 1.0, 0.0, 0.8] // Green with 80% opacity
+  });
+  
+  // 2 = yellow triangle
+  mappings.set(2, {
+    shapeType: 3, // Triangle
+    color: [1.0, 1.0, 0.0, 0.8] // Yellow with 80% opacity
+  });
+  
+  // 3 = red square
+  mappings.set(3, {
+    shapeType: 1, // Square
+    color: [1.0, 0.0, 0.0, 0.8] // Red with 80% opacity
+  });
+  
+  // 4 = teal diamond
+  mappings.set(4, {
+    shapeType: 2, // Diamond
+    color: [0.0, 0.5, 0.5, 0.8] // Teal with 80% opacity
+  });
+  
+  // 5 = white triangle
+  mappings.set(5, {
+    shapeType: 3, // Triangle
+    color: [1.0, 1.0, 1.0, 0.8] // White with 80% opacity
+  });
+  
+  return mappings;
+}
 
 /**
  * Create grid line positions for hostRows with proper spacing
@@ -87,25 +127,7 @@ function createMonthLabels(): { text: string; xOffset: number }[] {
   return labels;
 }
 
-/**
- * Helper to convert HSL to RGBA
- */
-function hslToRgba(h: number, s: number, l: number, a: number): [number, number, number, number] {
-  h = h % 360;
-  s = Math.max(0, Math.min(1, s));
-  l = Math.max(0, Math.min(1, l));
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  let r = 0, g = 0, b = 0;
-  if (h < 60) { r = c; g = x; b = 0; }
-  else if (h < 120) { r = x; g = c; b = 0; }
-  else if (h < 180) { r = 0; g = c; b = x; }
-  else if (h < 240) { r = 0; g = x; b = c; }
-  else if (h < 300) { r = x; g = 0; b = c; }
-  else { r = c; g = 0; b = x; }
-  return [r + m, g + m, b + m, a];
-}
+
 
 /**
  * Create chart shapes based on chart data
@@ -113,6 +135,9 @@ function hslToRgba(h: number, s: number, l: number, a: number): [number, number,
 function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8): ShapeScene[] {
   const shapes: ShapeScene[] = [];
   let globalTestResultIndex = 0; // Global index to track all test results across all version columns
+  
+  // Get the test result mappings, use defaults if not provided
+  const testResultMappings = chartData.testResultMappings || createDefaultTestResultMappings();
   
   // Iterate through each version column
   chartData.versionColumns.forEach((versionColumn, columnIndex) => {
@@ -133,17 +158,12 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
       // Get the y position from the corresponding host grid line
       const y = (1 - hostGridLines[testResult.hostIndex]) * 60;
       
-      // Color based on test result value (1-5)
-      const hue = (testResult.result * 60) % 360; // Different hue for each result value
-      const saturation = 0.7;
-      const lightness = 0.5;
-      const alpha = 0.8;
-      
-      const color = hslToRgba(hue, saturation, lightness, alpha);
-      
-      // Shape type based on test result value (1-5)
-      // 1 = Circle, 2 = Square, 3 = Diamond, 4 = Triangle, 5 = Circle (cycle back)
-      const shapeType = (testResult.result - 1) % 4;
+      // Get the mapping for this test result value
+      const mapping = testResultMappings.get(testResult.result);
+      if (!mapping) {
+        console.warn(`No mapping found for test result value: ${testResult.result}`);
+        return; // Skip this test result if no mapping is found
+      }
       
       // Store the global test result index in the test result object
       testResult.globalTestResultIndex = globalTestResultIndex;
@@ -151,9 +171,9 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
       shapes.push({
         x: x,
         y: y,
-        radius: 0.48 + (testResult.result / 5) * 0.32, // Radius based on test result value
-        color: color,
-        shapeType: shapeType
+        radius: 0.8,//0.48 + (testResult.result / 5) * 0.32, // Radius based on test result value
+        color: mapping.color,
+        shapeType: mapping.shapeType
       });
       
       // Increment the count for this host index
