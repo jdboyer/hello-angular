@@ -1,4 +1,4 @@
-import { MultiShapePipeline, ShapeScene } from './multi-circle-pipeline';
+import { MultiShapePipeline, ShapeScene } from '../hello-canvas/multi-shape-pipeline';
 
 // Example usage of the MultiShapePipeline
 export class MultiShapeExample {

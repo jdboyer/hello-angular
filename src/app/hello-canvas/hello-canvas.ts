@@ -1,9 +1,9 @@
 import { AfterViewInit, Component, ViewChild, ElementRef, HostListener, OnDestroy, input, effect, computed, output, EventEmitter } from '@angular/core';
-import { MultiShapePipeline } from '../pipelines/multi-circle-pipeline';
-import { GridPipeline } from '../pipelines/grid-pipeline';
+import { MultiShapePipeline } from './multi-shape-pipeline';
+import { GridPipeline } from './grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
-import { ShapeScene } from '../pipelines/multi-circle-pipeline';
+import { ShapeScene } from './multi-shape-pipeline';
 import { processChartScene } from './chart-scene';
 
 export interface HostRow {

@@ -1,6 +1,6 @@
 import { Scene, CircleScene, ChartScene, HostRow, TestResultMapping } from './hello-canvas';
 import { createSampleChartScene, createVersionColumns } from '../chart-helper';
-import { ShapeScene } from '../pipelines/multi-circle-pipeline';
+import { ShapeScene } from './multi-shape-pipeline';
 
 /**
  * Create default test result mappings
