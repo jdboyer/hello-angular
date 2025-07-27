@@ -77,7 +77,7 @@ export class MultiShapePipeline {
 
     // Create uniform buffer for transformation parameters
     this.uniformBuffer = device.createBuffer({
-      size: 16, // 4 floats: canvas width, height, pxToRem ratio, scroll offset
+      size: 20, // 5 floats: canvas width, height, pxToRem ratio, scroll offset, highlight index
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -86,7 +86,7 @@ export class MultiShapePipeline {
       entries: [
         {
           binding: 0,
-          visibility: GPUShaderStage.VERTEX,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
           buffer: { type: "uniform" },
         },
       ],
@@ -117,6 +117,7 @@ export class MultiShapePipeline {
             @location(0) uv: vec2f,
             @location(1) color: vec4<f32>,
             @location(2) shapeType: f32,
+            @location(3) instanceIndex: f32,
         };
 
         struct ShapeInstance {
@@ -126,8 +127,16 @@ export class MultiShapePipeline {
             shapeType: f32,   // 0=circle, 1=square, 2=diamond, 3=triangle
         };
 
+        struct Uniforms {
+            canvasWidth: f32,
+            canvasHeight: f32,
+            pxToRemRatio: f32,
+            scrollOffset: f32,
+            highlightIndex: f32, // -1 for no highlight, otherwise instance index to highlight
+        }
+
         @group(0) @binding(0)
-        var<uniform> uniforms: vec4f; // x: canvasWidth, y: canvasHeight, z: pxToRemRatio, w: scrollOffset
+        var<uniform> uniforms: Uniforms;
 
         @vertex
         fn main(
@@ -141,10 +150,10 @@ export class MultiShapePipeline {
         ) -> VertexOutput {
             var output: VertexOutput;
             
-            let canvasWidth = uniforms.x;
-            let canvasHeight = uniforms.y;
-            let pxToRemRatio = uniforms.z;
-            let scrollOffset = uniforms.w;
+            let canvasWidth = uniforms.canvasWidth;
+            let canvasHeight = uniforms.canvasHeight;
+            let pxToRemRatio = uniforms.pxToRemRatio;
+            let scrollOffset = uniforms.scrollOffset;
             
             // Convert rem coordinates to pixels
             let centerXInPixels = instance_center.x * pxToRemRatio;
@@ -154,6 +163,11 @@ export class MultiShapePipeline {
             // Apply scroll offset to x coordinate
             let adjustedXInPixels = centerXInPixels + scrollOffset;
             
+            // Apply highlight scaling based on instance index
+            let isHighlighted = f32(instance_idx) == uniforms.highlightIndex;
+            let highlightScale = 1.0 + f32(isHighlighted) * 0.3; // 30% larger when highlighted
+            let scaledRadiusInPixels = radiusInPixels * highlightScale;
+            
             // Convert pixel coordinates to NDC (Normalized Device Coordinates)
             // NDC x: -1 to 1 maps to 0 to canvasWidth
             let ndc_x = (adjustedXInPixels / (canvasWidth / 2.0)) - 1.0;
@@ -162,8 +176,8 @@ export class MultiShapePipeline {
             
             // Scale the quad by the pixel radius and convert to NDC
             let scaled = vec4f(
-                ndc_x + position.x * radiusInPixels / (canvasWidth / 2.0),
-                ndc_y + position.y * radiusInPixels / (canvasHeight / 2.0),
+                ndc_x + position.x * scaledRadiusInPixels / (canvasWidth / 2.0),
+                ndc_y + position.y * scaledRadiusInPixels / (canvasHeight / 2.0),
                 position.z,
                 position.w
             );
@@ -172,6 +186,7 @@ export class MultiShapePipeline {
             output.position = scaled;
             output.color = instance_color;
             output.shapeType = instance_shapeType;
+            output.instanceIndex = f32(instance_idx);
             return output;
         }
       `,
@@ -179,6 +194,17 @@ export class MultiShapePipeline {
 
     const multiShapeFragmentShaderModule = device.createShaderModule({
       code: `
+        struct Uniforms {
+            canvasWidth: f32,
+            canvasHeight: f32,
+            pxToRemRatio: f32,
+            scrollOffset: f32,
+            highlightIndex: f32, // -1 for no highlight, otherwise instance index to highlight
+        }
+
+        @group(0) @binding(0)
+        var<uniform> uniforms: Uniforms;
+
         struct FragmentInput {
             @location(1) color: vec4<f32>,
             @location(2) shapeType: f32,
@@ -213,7 +239,8 @@ export class MultiShapePipeline {
         fn main(
           @location(0) uv: vec2f,
           @location(1) color: vec4<f32>,
-          @location(2) shapeType: f32
+          @location(2) shapeType: f32,
+          @location(3) instanceIndex: f32
         ) -> @location(0) vec4<f32> {
             // UV coordinates are in the shape's local space
             let p = uv;
@@ -235,8 +262,26 @@ export class MultiShapePipeline {
                 d = sdTriangle(p, 1.0);
             }
             
-            let alpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
-            return vec4f(color.rgb, alpha);
+            // Check if this instance is highlighted
+            let isHighlighted = instanceIndex == uniforms.highlightIndex;
+            
+            // Create border effect
+            let borderWidth = 0.05; // Border thickness (adjust as needed)
+            let fillAlpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
+            let borderAlpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d - borderWidth);
+            
+            // Border has higher opacity than fill
+            let borderOpacity = min(color.a * 1.5, 1.0); // 50% more opaque than fill
+            let fillOpacity = color.a * 0.7; // 30% less opaque than original
+            
+            // Apply highlight brightness
+            let brightnessMultiplier = 1.0 + f32(isHighlighted) * 0.5; // 50% brighter when highlighted
+            let highlightedColor = vec4f(color.rgb * brightnessMultiplier, color.a);
+            
+            // Combine fill and border
+            let finalAlpha = fillOpacity * fillAlpha + borderOpacity * (borderAlpha - fillAlpha);
+            
+            return vec4f(highlightedColor.rgb, finalAlpha);
         }
       `,
     });
@@ -257,7 +302,7 @@ export class MultiShapePipeline {
             attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x4' }],
           },
           { // Instance buffer for shape data
-            arrayStride: 8 * 4, // 2 floats (center) + 1 float (radius) + 4 floats (color) + 1 float (shapeType)
+            arrayStride: 8 * 4, // 2 floats (center) + 1 float (radius) + 4 floats (color) + 1 float (shapeType) = 8 floats
             stepMode: 'instance',
             attributes: [
               { shaderLocation: 2, offset: 0, format: 'float32x2' }, // center
@@ -358,6 +403,15 @@ export class MultiShapePipeline {
   }
 
   /**
+   * Set which shape to highlight
+   * @param device GPUDevice
+   * @param highlightIndex number (instance index to highlight, -1 for no highlight)
+   */
+  setHighlightIndex(device: GPUDevice, highlightIndex: number) {
+    device.queue.writeBuffer(this.uniformBuffer, 16, new Float32Array([highlightIndex])); // Write just the highlight index
+  }
+
+  /**
    * Update the uniform buffer with current transformation parameters
    * @param device GPUDevice
    */
@@ -366,7 +420,8 @@ export class MultiShapePipeline {
       this.canvasWidthPixels, 
       this.canvasHeightPixels, 
       this.pxToRemRatio, 
-      this.scrollOffsetInPixels
+      this.scrollOffsetInPixels,
+      -1.0 // highlightIndex: -1 for no highlight
     ]));
   }
 
