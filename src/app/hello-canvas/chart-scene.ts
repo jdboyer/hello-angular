@@ -97,8 +97,6 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
       }
     }
   }
-  console.log(hostRows);
-  console.log(gridLines);
   
   return gridLines;
 }

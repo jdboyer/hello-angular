@@ -76,6 +76,7 @@
   transform: translateY(-1px) translateX(-10px);
   text-align: left;
   width: 100%;
+  font-family: monospace;
 }
 
 .bottom-axis-label {

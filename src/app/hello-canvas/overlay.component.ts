@@ -173,7 +173,6 @@ export class OverlayComponent {
 
   visibleBottomLabels = computed(() => {
     const all = this.bottomLabelsList();
-    console.log('Bottom labels list:', all);
     
     // For bottom labels, we want to show all labels and let them move with the scroll
     // They have individual x offsets, so we don't need the same filtering logic as top labels

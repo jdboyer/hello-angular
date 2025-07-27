@@ -72,12 +72,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   // Input signal for the chart scene
   chartScene = input.required<ChartScene>();
   
-  // Default spacing and scroll range
-  //spacing = signal(8);
-  //scrollRangeRem = signal(200);
   
   // Computed signal to process ChartScene into Scene
-  //scene = computed(() => processChartScene(this.chartScene(), this.spacing(), this.scrollRangeRem()));
   scene = computed(() => processChartScene(this.chartScene()));
 
   private adapter!: GPUAdapter | null;
@@ -120,7 +116,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     // Always update labels and bottom labels, even if pipelines aren't ready
     this.textList.set(currentScene.xAxisLabels);
     this.gridLineLabelsList.set(currentScene.gridLineLabels);
-    console.log('Setting bottom labels:', currentScene.bottomLabels);
     this.bottomLabelsList.set(currentScene.bottomLabels);
     this.overlayXOffset.set(currentScene.overlayXOffset);
     
@@ -129,7 +124,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
       this.gridPipeline = new GridPipeline(this.device, this.presentationFormat, currentScene.gridLines);
       
       // Update shapes
-      console.log(`Scene updated: ${currentScene.circles.length} shapes`);
       this.multiShapePipeline.setShapes(currentScene.circles);
       
       // Redraw the scene
