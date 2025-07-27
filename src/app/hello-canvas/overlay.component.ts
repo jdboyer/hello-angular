@@ -167,7 +167,13 @@ export class OverlayComponent {
     const currentScrollDistancePixels = this.scrollPosition() * totalScrollDistancePixels;
     const wraps = Math.floor(Math.abs(currentScrollDistancePixels) / spacingInPixels);
     const maxStart = Math.max(0, all.length - maxVisibleItems);
-    const start = Math.min(wraps, maxStart);
+    const start = maxStart == 0 ? Math.min(wraps, maxStart) : wraps;
+    if (start > all.length) {
+      return [];
+    }
+    else if (start + maxVisibleItems > all.length) {
+      return all.slice(start);
+    }
     return all.slice(start, start + maxVisibleItems);
   });
 

@@ -232,7 +232,7 @@ export function processChartScene(chartData: ChartScene, spacingRem: number = 4,
   const monthLabels = createMonthLabels();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
-  scrollRangeRem = spacingRem * chartData.versionColumns.length;
+  scrollRangeRem = spacingRem * chartData.versionColumns.length + 20;
   const overlayXOffset = 1;
   
   // Extract version strings from chartData.versionColumns
