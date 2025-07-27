@@ -8,6 +8,8 @@ import { ShapeScene } from './pipelines/multi-circle-pipeline';
 function createHostGridLines(hostRows: HostRow[]): number[] {
   const gridLines: number[] = [];
   
+  const smallGap = 0.02;
+  const largeGap = 0.03;
   // Calculate total gaps needed
   let totalGaps = 0;
   for (let i = 0; i < hostRows.length - 1; i++) {
@@ -15,9 +17,13 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
     const nextHost = hostRows[i + 1];
     
     if (nextHost.platform === currentHost.platform) {
-      totalGaps += 0.02; // Small gap between subplatforms of same platform
+      if (nextHost.subplatform === currentHost.subplatform) {
+        totalGaps += 0.00; // Small gap between subplatforms of same platform
+      } else {
+        totalGaps += smallGap; // Larger gap between different platforms
+      }
     } else {
-      totalGaps += 0.04; // Larger gap between different platforms
+      totalGaps += largeGap; // Larger gap between different platforms
     }
   }
   
@@ -27,8 +33,6 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
   
   // Calculate grid line positions
   let currentY = 0.07; // Start at 0.1
-  const smallGap = 0.02;
-  const largeGap = 0.04;
   
   for (let i = 0; i < hostRows.length; i++) {
     const currentHost = hostRows[i];
@@ -43,7 +47,11 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
     // Add gap after this host if there's a next host
     if (nextHost) {
       if (nextHost.platform === currentHost.platform) {
-        currentY += smallGap;
+        if (nextHost.subplatform === currentHost.subplatform) {
+          currentY += 0;
+        } else {
+          currentY += smallGap;
+        }
       } else {
         currentY += largeGap;
       }
