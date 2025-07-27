@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas';
-import { createDefaultChartScene, createChartScene } from './chart-scene';
+import { createChartScene } from './chart-scene';
 
 @Component({
   selector: 'app-root',
@@ -18,7 +18,7 @@ export class App {
   protected readonly title = signal('hello-angular');
 
   // Create a signal for the scene
-  protected readonly scene = signal<Scene>(createDefaultChartScene());
+  protected readonly scene = signal<Scene>(createChartScene(8));
   
   // Signal for scroll range in rem units (total scrollable width in rem)
   protected readonly scrollRangeRem = signal<number>(200);

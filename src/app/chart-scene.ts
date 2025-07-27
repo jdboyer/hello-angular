@@ -84,22 +84,6 @@ function createChartCircles(spacingRem: number = 8): CircleScene[] {
 }
 
 /**
- * Create a default chart scene
- */
-export function createDefaultChartScene(): Scene {
-  const monthLabels = createMonthLabels();
-  console.log('Created month labels:', monthLabels);
-  return {
-    gridLines: [0.2, 0.4, 0.6, 0.8],
-    circles: createChartCircles(8), // Default 8rem spacing
-    labels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
-    bottomLabels: monthLabels,
-    spacing: 8, // Default 8rem spacing
-    overlayXOffset: 4 // Default 4rem offset
-  };
-}
-
-/**
  * Create a chart scene with custom spacing
  */
 export function createChartScene(spacingRem: number = 8): Scene {
