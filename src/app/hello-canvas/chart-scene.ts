@@ -130,7 +130,7 @@ function createMonthLabels(): { text: string; xOffset: number }[] {
 /**
  * Create chart shapes based on chart data
  */
-function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8): ShapeScene[] {
+function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8, overlayXOffset: number = 4): ShapeScene[] {
   const shapes: ShapeScene[] = [];
   let globalTestResultIndex = 0; // Global index to track all test results across all version columns
   
@@ -139,7 +139,7 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
   
   // Iterate through each version column
   chartData.versionColumns.forEach((versionColumn, columnIndex) => {
-    const baseX = columnIndex * spacingRem + 4;
+    const baseX = columnIndex * spacingRem + overlayXOffset;
     
     // Track how many shapes have been added for each host index in this version column
     const hostShapeCounts = new Map<number, number>();
@@ -207,18 +207,19 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
   const chartData = createSampleChartScene();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
+  const overlayXOffset = 4;
   
   // Extract version strings from chartData.versionColumns
   const xAxisLabels = chartData.versionColumns.map(column => column.version);
   
   return {
     gridLines: hostGridLines,
-    circles: createChartShapes(chartData, hostGridLines, spacingRem),
+    circles: createChartShapes(chartData, hostGridLines, spacingRem, overlayXOffset),
     xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
     spacing: spacingRem,
-    overlayXOffset: 4,
+    overlayXOffset: overlayXOffset,
     scrollRangeRem: scrollRangeRem,
     chartScene: chartData // Include the original chart data
   };
@@ -227,23 +228,24 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
 /**
  * Process a ChartScene into a Scene for rendering
  */
-export function processChartScene(chartData: ChartScene, spacingRem: number = 8, scrollRangeRem: number = 200): Scene {
+export function processChartScene(chartData: ChartScene, spacingRem: number = 4, scrollRangeRem: number = 200): Scene {
   const monthLabels = createMonthLabels();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
   scrollRangeRem = spacingRem * chartData.versionColumns.length;
+  const overlayXOffset = 1;
   
   // Extract version strings from chartData.versionColumns
   const xAxisLabels = chartData.versionColumns.map(column => column.version);
   
   return {
     gridLines: hostGridLines,
-    circles: createChartShapes(chartData, hostGridLines, spacingRem),
+    circles: createChartShapes(chartData, hostGridLines, spacingRem, overlayXOffset),
     xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
     spacing: spacingRem,
-    overlayXOffset: 4,
+    overlayXOffset: overlayXOffset,
     scrollRangeRem: scrollRangeRem,
     chartScene: chartData // Include the original chart data
   };

@@ -317,9 +317,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     }
     
     // Calculate version index from X position
-    // X position formula: baseX = versionIndex * spacing + 4
-    // So: versionIndex = (xPosition - 4) / spacing
-    const versionIndex = Math.floor((xPosition + 4) / spacing);
+    const versionIndex = Math.floor((xPosition + scene.spacing / 2) / spacing);
     
     // Check if the version index is valid
     if (versionIndex >= 0 && versionIndex < xAxisLabels.length) {
@@ -383,8 +381,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     // If multiple test results and X position is provided, find the closest one
     if (xPosition !== undefined) {
       // Calculate the base X position for this version
-      const baseX = versionIndex * scene.spacing + 4;
-      const mouseXOffset = xPosition - baseX + 4;
+      const baseX = versionIndex * scene.spacing;
+      const mouseXOffset = xPosition - baseX;
       
       let closestTestResult = testResultsForHost[0];
       let minDistance = Math.abs(0 - mouseXOffset); // First shape has offset 0
