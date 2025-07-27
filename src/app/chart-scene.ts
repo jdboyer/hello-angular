@@ -112,6 +112,7 @@ function hslToRgba(h: number, s: number, l: number, a: number): [number, number,
  */
 function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8): ShapeScene[] {
   const shapes: ShapeScene[] = [];
+  let globalTestResultIndex = 0; // Global index to track all test results across all version columns
   
   // Iterate through each version column
   chartData.versionColumns.forEach((versionColumn, columnIndex) => {
@@ -121,7 +122,7 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
     const hostShapeCounts = new Map<number, number>();
     
     // Iterate through each test result in this version column
-    versionColumn.testResults.forEach(testResult => {
+    versionColumn.testResults.forEach((testResult, testResultIndex) => {
       // Get the count of shapes already added for this host index in this version column
       const shapeCount = hostShapeCounts.get(testResult.hostIndex) || 0;
       
@@ -149,11 +150,15 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
         y: y,
         radius: 0.48 + (testResult.result / 5) * 0.32, // Radius based on test result value
         color: color,
-        shapeType: shapeType
+        shapeType: shapeType,
+        testResultIndex: globalTestResultIndex // Store the global test result index
       });
       
       // Increment the count for this host index
       hostShapeCounts.set(testResult.hostIndex, shapeCount + 1);
+      
+      // Increment the global test result index
+      globalTestResultIndex++;
     });
   });
   
@@ -194,6 +199,7 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
     bottomLabels: monthLabels,
     spacing: spacingRem,
     overlayXOffset: 4,
-    scrollRangeRem: scrollRangeRem
+    scrollRangeRem: scrollRangeRem,
+    chartScene: chartData // Include the original chart data
   };
 } 

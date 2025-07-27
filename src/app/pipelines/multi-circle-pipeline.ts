@@ -6,6 +6,7 @@ export interface ShapeScene {
   radius: number;      // size/radius in rem units
   color: [number, number, number, number];
   shapeType: number;   // 0=circle, 1=square, 2=diamond, 3=triangle
+  testResultIndex?: number; // Index of the test result in the ChartScene
 }
 
 export class MultiShapePipeline {

@@ -33,6 +33,7 @@ export interface Scene {
   spacing: number; // Spacing in rem units for both overlay text and shape columns
   overlayXOffset: number; // X offset in rem units to shift all overlay text
   scrollRangeRem: number; // Total scrollable width in rem units
+  chartScene?: ChartScene; // Original chart data for future reference
 }
 
 @Component({
