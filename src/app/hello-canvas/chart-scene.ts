@@ -8,8 +8,8 @@ import { ShapeScene } from '../pipelines/multi-circle-pipeline';
 function createHostGridLines(hostRows: HostRow[]): number[] {
   const gridLines: number[] = [];
   
-  const smallGap = 0.02;
-  const largeGap = 0.03;
+  const smallGap = 0.01;
+  const largeGap = 0.04;
   // Calculate total gaps needed
   let totalGaps = 0;
   for (let i = 0; i < hostRows.length - 1; i++) {

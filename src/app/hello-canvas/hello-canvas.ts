@@ -105,6 +105,9 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   // Output for mouse position changes
   mousePositionChange = output<MousePosition>();
   
+  // Writable signal for the currently selected test result
+  selectedTestResult = signal<TestResult | null>(null);
+  
   // Computed signal for text spacing from scene
   textSpacing = computed(() => this.scene().spacing);
   
@@ -255,15 +258,23 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
       const match = mousePos.nearestYAxisLabel.match(/^([^(]+)/);
       if (match) {
         const hostname = match[1].trim();
-        const success = this.highlightShapeByHostAndVersion(hostname, mousePos.version, mousePos.x);
-        if (!success) {
-          // If no shape found, clear the highlight
+        const testResult = this.findTestResult(hostname, mousePos.version, mousePos.x);
+        
+        if (testResult) {
+          // Highlight the shape using the global test result index
+          this.highlightShape(testResult.globalTestResultIndex ?? -1);
+          // Set the selected test result
+          this.selectedTestResult.set(testResult);
+        } else {
+          // If no test result found, clear the highlight and set null
           this.highlightShape(-1);
+          this.selectedTestResult.set(null);
         }
       }
     } else {
-      // If no valid position, clear the highlight
+      // If no valid position, clear the highlight and set null
       this.highlightShape(-1);
+      this.selectedTestResult.set(null);
     }
   }
 
@@ -335,19 +346,19 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Find the instance index of a shape given a host and version
+   * Find the test result given a host and version
    * @param hostname The hostname to search for
    * @param version The version to search for
    * @param xPosition Optional X position to disambiguate between multiple shapes
-   * @returns The instance index of the shape, or -1 if not found
+   * @returns The test result object, or null if not found
    */
-  public findShapeInstanceIndex(hostname: string, version: string, xPosition?: number): number {
+  public findTestResult(hostname: string, version: string, xPosition?: number): TestResult | null {
     const scene = this.scene();
     const chartScene = scene.chartScene;
     
     if (!chartScene) {
       console.error('Chart scene data not available');
-      return -1;
+      return null;
     }
     
     // Find the host index from gridLineLabels
@@ -358,34 +369,31 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     });
     
     if (hostIndex === -1) {
-      return -1;
+      return null;
     }
     
     // Find the version index from xAxisLabels
     const versionIndex = scene.xAxisLabels.findIndex(v => v === version);
     if (versionIndex === -1) {
-      return -1;
+      return null;
     }
     
     // Get the version column for this version
     const versionColumn = chartScene.versionColumns[versionIndex];
     if (!versionColumn) {
-      return -1;
+      return null;
     }
     
     // Find all test results for this host in this version column
     const testResultsForHost = versionColumn.testResults.filter(testResult => testResult.hostIndex === hostIndex);
     
     if (testResultsForHost.length === 0) {
-      return -1;
+      return null;
     }
     
-    // If only one test result, return its corresponding shape index
+    // If only one test result, return it
     if (testResultsForHost.length === 1) {
-      const globalTestResultIndex = testResultsForHost[0].globalTestResultIndex;
-      if (globalTestResultIndex !== undefined) {
-        return globalTestResultIndex;
-      }
+      return testResultsForHost[0];
     }
     
     // If multiple test results and X position is provided, find the closest one
@@ -407,19 +415,23 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
         }
       }
       
-      const globalTestResultIndex = closestTestResult.globalTestResultIndex;
-      if (globalTestResultIndex !== undefined) {
-        return globalTestResultIndex;
-      }
+      return closestTestResult;
     }
     
-    // If no X position provided or no closest match found, return the first test result's shape index
-    const firstGlobalIndex = testResultsForHost[0].globalTestResultIndex;
-    if (firstGlobalIndex !== undefined) {
-      return firstGlobalIndex;
-    }
-    
-    return -1;
+    // If no X position provided or no closest match found, return the first test result
+    return testResultsForHost[0];
+  }
+
+  /**
+   * Find the instance index of a shape given a host and version
+   * @param hostname The hostname to search for
+   * @param version The version to search for
+   * @param xPosition Optional X position to disambiguate between multiple shapes
+   * @returns The instance index of the shape, or -1 if not found
+   */
+  public findShapeInstanceIndex(hostname: string, version: string, xPosition?: number): number {
+    const testResult = this.findTestResult(hostname, version, xPosition);
+    return testResult?.globalTestResultIndex ?? -1;
   }
 
   /**
