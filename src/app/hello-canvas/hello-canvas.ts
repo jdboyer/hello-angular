@@ -101,7 +101,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   private gridPipeline!: GridPipeline;
 
   scrollRange = signal(100); // Range for scrollbar (0-1 in overlay component)
-  scrollPosition = signal(0);
+  scrollPosition = signal(1);
   canvasWidth = signal(500);
   textList = signal<string[]>([]); // Will be populated from scene xAxisLabels
   gridLineLabelsList = signal<string[]>([]); // Will be populated from scene gridLineLabels

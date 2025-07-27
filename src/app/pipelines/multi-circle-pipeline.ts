@@ -294,8 +294,8 @@ export class MultiShapePipeline {
             let fillOpacity = color.a * 0.7; // 30% less opaque than original
             
             // Apply highlight brightness
-            let brightnessMultiplier = 1.0 + f32(isHighlighted) * 0.5; // 50% brighter when highlighted
-            var highlightedColor = vec4f(color.rgb * brightnessMultiplier, color.a);
+            let brightnessMultiplier = 1.0 + f32(isHighlighted) * 0.8; // 50% brighter when highlighted
+            var highlightedColor = vec4f(color.rgb * brightnessMultiplier, color.a * brightnessMultiplier);
             
             // Combine fill and border
             var finalAlpha = fillOpacity * fillAlpha + borderOpacity * (borderAlpha - fillAlpha);

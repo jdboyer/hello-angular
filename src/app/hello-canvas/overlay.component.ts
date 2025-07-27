@@ -1,4 +1,4 @@
-import { Component, Input, Output, signal, computed, EventEmitter, Signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, signal, computed, EventEmitter, Signal, ViewChild, ElementRef, effect } from '@angular/core';
 
 @Component({
   selector: 'app-overlay',
@@ -50,6 +50,12 @@ export class OverlayComponent {
   @Input() textSpacing!: number; // Spacing in rem units
   @Output() scrollPositionChange = new EventEmitter<number>();
   @Output() mousePositionChange = new EventEmitter<{x: number, y: number}>();
+
+  // Effect to update offsetX when scroll position changes
+  private scrollEffect = effect(() => {
+    const scrollPos = this.scrollPosition();
+    this.updateOffsetX(scrollPos);
+  });
 
   get canvasWidthValue() {
     return this.canvasWidth();
@@ -230,10 +236,7 @@ export class OverlayComponent {
     this.updateScrollPosition(newScrollPosition);
   }
 
-  private updateScrollPosition(value: number): void {
-    this.scrollPosition.set(value);
-    this.scrollPositionChange.emit(value);
-    
+  private updateOffsetX(scrollValue: number): void {
     const canvasWidth = this.canvasWidth();
     const spacingInPixels = this.convertRemToPixels(this.textSpacing);
     const scrollRange = this.scrollRange();
@@ -249,7 +252,13 @@ export class OverlayComponent {
     // Calculate scroll distance based on canvas width vs scroll range
     const totalScrollDistanceRem = scrollRange - canvasWidthRem;
     const totalScrollDistancePixels = totalScrollDistanceRem * pxToRemRatio;
-    const currentScrollDistancePixels = value * totalScrollDistancePixels;
+    const currentScrollDistancePixels = scrollValue * totalScrollDistancePixels;
     this.offsetX.set(-currentScrollDistancePixels % spacingInPixels);
+  }
+
+  private updateScrollPosition(value: number): void {
+    this.scrollPosition.set(value);
+    this.scrollPositionChange.emit(value);
+    this.updateOffsetX(value);
   }
 } 
