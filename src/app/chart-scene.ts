@@ -1,5 +1,56 @@
 import { Scene, CircleScene } from './hello-canvas/hello-canvas';
-import { ChartScene, createSampleChartScene, createVersionColumns } from './chart-helper';
+import { ChartScene, createSampleChartScene, createVersionColumns, HostRow } from './chart-helper';
+
+/**
+ * Create grid line positions for hostRows with proper spacing
+ */
+function createHostGridLines(hostRows: HostRow[]): number[] {
+  const gridLines: number[] = [];
+  
+  // Calculate total gaps needed
+  let totalGaps = 0;
+  for (let i = 0; i < hostRows.length - 1; i++) {
+    const currentHost = hostRows[i];
+    const nextHost = hostRows[i + 1];
+    
+    if (nextHost.platform === currentHost.platform) {
+      totalGaps += 0.02; // Small gap between subplatforms of same platform
+    } else {
+      totalGaps += 0.04; // Larger gap between different platforms
+    }
+  }
+  
+  // Calculate available space for hosts (0.1 to 0.9 = 0.8 total space)
+  const availableSpace = 0.8 - totalGaps;
+  const hostSpacing = availableSpace / hostRows.length;
+  
+  // Calculate grid line positions
+  let currentY = 0.1; // Start at 0.1
+  const smallGap = 0.02;
+  const largeGap = 0.04;
+  
+  for (let i = 0; i < hostRows.length; i++) {
+    const currentHost = hostRows[i];
+    const nextHost = hostRows[i + 1];
+    
+    // Add grid line for current host
+    gridLines.push(currentY);
+    
+    // Move to next position
+    currentY += hostSpacing;
+    
+    // Add gap after this host if there's a next host
+    if (nextHost) {
+      if (nextHost.platform === currentHost.platform) {
+        currentY += smallGap;
+      } else {
+        currentY += largeGap;
+      }
+    }
+  }
+  
+  return gridLines;
+}
 
 /**
  * Create month labels with hardcoded random rem offsets
@@ -50,7 +101,6 @@ function hslToRgba(h: number, s: number, l: number, a: number): [number, number,
  */
 function createChartCircles(spacingRem: number = 8): CircleScene[] {
   const circles: CircleScene[] = [];
-  const chartData = createSampleChartScene();
   
   // Create circles based on chart data
   // For now, using a similar pattern to column circles but adapted for chart visualization
@@ -88,8 +138,11 @@ function createChartCircles(spacingRem: number = 8): CircleScene[] {
  */
 export function createChartScene(spacingRem: number = 8): Scene {
   const monthLabels = createMonthLabels();
+  const chartData = createSampleChartScene();
+  const hostGridLines = createHostGridLines(chartData.hostRows);
+  
   return {
-    gridLines: [0.2, 0.4, 0.6, 0.8],
+    gridLines: hostGridLines,
     circles: createChartCircles(spacingRem),
     labels: Array.from({length: 100}, (_, i) => (i + 1).toString()),
     bottomLabels: monthLabels,

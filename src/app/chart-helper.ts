@@ -176,6 +176,16 @@ export function createSampleChartScene(): ChartScene {
     }
   }
   
+  // Sort hostRows by platform and subplatform for consistent ordering
+  hostRows.sort((a, b) => {
+    // First sort by platform
+    if (a.platform !== b.platform) {
+      return a.platform.localeCompare(b.platform);
+    }
+    // Then sort by subplatform
+    return a.subplatform.localeCompare(b.subplatform);
+  });
+  
   // Create sample version columns
   const versionColumns: VersionColumn[] = createVersionColumns(hostRows);
   
