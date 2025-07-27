@@ -1,6 +1,14 @@
 import { CircleScene } from '../hello-canvas/hello-canvas';
 
-export class MultiCirclePipeline {
+export interface ShapeScene {
+  x: number;           // center.x in rem units
+  y: number;           // center.y in rem units
+  radius: number;      // size/radius in rem units
+  color: [number, number, number, number];
+  shapeType: number;   // 0=circle, 1=square, 2=diamond, 3=triangle
+}
+
+export class MultiShapePipeline {
   private pipeline!: GPURenderPipeline;
   private vertexBuffer!: GPUBuffer;
   private colorBuffer!: GPUBuffer;
@@ -9,7 +17,7 @@ export class MultiCirclePipeline {
   private bindGroup!: GPUBindGroup;
   private aspectRatio: number = 1.0;
   private scrollOffset: number = 0.0;
-  private circles: CircleScene[] = [];
+  private shapes: ShapeScene[] = [];
   private device!: GPUDevice;
   private scrollOffsetInPixels: number = 0.0;
   private canvasWidthPixels: number = 1.0;
@@ -19,8 +27,8 @@ export class MultiCirclePipeline {
   constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
     this.device = device;
     
-    // --- Setup for Multiple Circles ---
-    // Define a small quad that will be instanced for each circle
+    // --- Setup for Multiple Shapes ---
+    // Define a small quad that will be instanced for each shape
     const quadPositions = new Float32Array([
       // Triangle 1
       -0.5,  0.5, 0.0, 1.0, // Top-left
@@ -63,7 +71,7 @@ export class MultiCirclePipeline {
 
     // Create instance buffer (will be populated later)
     this.instanceBuffer = device.createBuffer({
-      size: 0, // Will be set when circles are added
+      size: 0, // Will be set when shapes are added
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
@@ -101,19 +109,21 @@ export class MultiCirclePipeline {
       ],
     });
 
-    // Create Shader Modules for Multiple Circles with Rem-based Transformation
-    const multiCircleVertexShaderModule = device.createShaderModule({
+    // Create Shader Modules for Multiple Shapes with Rem-based Transformation
+    const multiShapeVertexShaderModule = device.createShaderModule({
       code: `
         struct VertexOutput {
             @builtin(position) position: vec4<f32>,
             @location(0) uv: vec2f,
             @location(1) color: vec4<f32>,
+            @location(2) shapeType: f32,
         };
 
-        struct CircleInstance {
+        struct ShapeInstance {
             center: vec2f,    // x, y in rem units
-            radius: f32,      // radius in rem units
+            radius: f32,      // radius/size in rem units
             color: vec4<f32>,
+            shapeType: f32,   // 0=circle, 1=square, 2=diamond, 3=triangle
         };
 
         @group(0) @binding(0)
@@ -124,8 +134,9 @@ export class MultiCirclePipeline {
           @location(0) position: vec4<f32>,
           @location(1) color: vec4<f32>,
           @location(2) instance_center: vec2f, // x, y in rem units
-          @location(3) instance_radius: f32,   // radius in rem units
+          @location(3) instance_radius: f32,   // radius/size in rem units
           @location(4) instance_color: vec4<f32>,
+          @location(5) instance_shapeType: f32, // shape type
           @builtin(instance_index) instance_idx: u32
         ) -> VertexOutput {
             var output: VertexOutput;
@@ -160,40 +171,81 @@ export class MultiCirclePipeline {
             output.uv = position.xy * 2.0;
             output.position = scaled;
             output.color = instance_color;
+            output.shapeType = instance_shapeType;
             return output;
         }
       `,
     });
 
-    const multiCircleFragmentShaderModule = device.createShaderModule({
+    const multiShapeFragmentShaderModule = device.createShaderModule({
       code: `
         struct FragmentInput {
             @location(1) color: vec4<f32>,
+            @location(2) shapeType: f32,
         };
 
+        // Signed Distance Functions for different shapes
         fn sdCircle(p: vec2f, r: f32) -> f32 {
             return length(p) - r;
+        }
+
+        fn sdSquare(p: vec2f, b: f32) -> f32 {
+            let d = abs(p) - b;
+            return length(max(d, vec2f(0.0))) + min(max(d.x, d.y), 0.0);
+        }
+
+        fn sdDiamond(p: vec2f, b: f32) -> f32 {
+            let q = abs(p);
+            return (q.x + q.y - b) * 0.7071067811865476;
+        }
+
+        fn sdTriangle(p: vec2f, r: f32) -> f32 {
+            let k = sqrt(3.0);
+            var q = vec2f(abs(p.x) - r, p.y + r / k);
+            if (q.x + k * q.y > 0.0) {
+                q = vec2f(q.x - k * q.y, -k * q.x - q.y) / 2.0;
+            }
+            q.x -= clamp(q.x, -2.0 * r, 0.0);
+            return -length(q) * sign(q.y);
         }
 
         @fragment
         fn main(
           @location(0) uv: vec2f,
-          input: FragmentInput
+          @location(1) color: vec4<f32>,
+          @location(2) shapeType: f32
         ) -> @location(0) vec4<f32> {
-            // UV coordinates are in the circle's local space
+            // UV coordinates are in the shape's local space
             let p = uv;
-            let d = sdCircle(p, 1.0); // Use unit circle since we scaled in vertex shader
+            
+            var d: f32;
+            
+            // Select SDF based on shape type
+            if (shapeType < 0.5) {
+                // Circle
+                d = sdCircle(p, 1.0);
+            } else if (shapeType < 1.5) {
+                // Square
+                d = sdSquare(p, 1.0);
+            } else if (shapeType < 2.5) {
+                // Diamond
+                d = sdDiamond(p, 1.0);
+            } else {
+                // Triangle
+                d = sdTriangle(p, 1.0);
+            }
+            
             let alpha = 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
-            return vec4f(input.color.rgb, input.color.a * alpha);
+            return vec4f(color.rgb, alpha);
         }
       `,
     });
 
-    // Create Render Pipeline for Multiple Circles with Instancing
+    // Create Render Pipeline for Multiple Shapes with Instancing
     this.pipeline = device.createRenderPipeline({
       layout: pipelineLayout,
       vertex: {
-        module: multiCircleVertexShaderModule,
+        module: multiShapeVertexShaderModule,
         entryPoint: 'main',
         buffers: [
           { // Buffer for positions
@@ -204,13 +256,14 @@ export class MultiCirclePipeline {
             arrayStride: 4 * 4,
             attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x4' }],
           },
-          { // Instance buffer for circle data
-            arrayStride: 7 * 4, // 2 floats (center) + 1 float (radius) + 4 floats (color)
+          { // Instance buffer for shape data
+            arrayStride: 8 * 4, // 2 floats (center) + 1 float (radius) + 4 floats (color) + 1 float (shapeType)
             stepMode: 'instance',
             attributes: [
               { shaderLocation: 2, offset: 0, format: 'float32x2' }, // center
               { shaderLocation: 3, offset: 8, format: 'float32' },   // radius
               { shaderLocation: 4, offset: 12, format: 'float32x4' }, // color
+              { shaderLocation: 5, offset: 28, format: 'float32' },  // shapeType
             ],
           },
         ],
@@ -219,7 +272,7 @@ export class MultiCirclePipeline {
         topology: 'triangle-list',
       },
       fragment: {
-        module: multiCircleFragmentShaderModule,
+        module: multiShapeFragmentShaderModule,
         entryPoint: 'main',
         targets: [
           {
@@ -243,33 +296,34 @@ export class MultiCirclePipeline {
   }
 
   /**
-   * Set the circles to render
-   * @param circles Array of circle descriptions in rem units
+   * Set the shapes to render
+   * @param shapes Array of shape descriptions in rem units
    */
-  setCircles(circles: CircleScene[]) {
-    this.circles = circles;
+  setShapes(shapes: ShapeScene[]) {
+    this.shapes = shapes;
     this.updateInstanceBuffer();
   }
 
   /**
-   * Update the instance buffer with current circles
+   * Update the instance buffer with current shapes
    */
   private updateInstanceBuffer() {
-    if (this.circles.length === 0) return;
+    if (this.shapes.length === 0) return;
     
-    const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
-    for (let i = 0; i < this.circles.length; i++) {
-      const circle = this.circles[i];
-      const offset = i * 7;
+    const instanceData = new Float32Array(this.shapes.length * 8); // 8 floats per instance
+    for (let i = 0; i < this.shapes.length; i++) {
+      const shape = this.shapes[i];
+      const offset = i * 8;
       
       // Store rem coordinates directly (transformation happens in vertex shader)
-      instanceData[offset + 0] = circle.x; // center.x in rem
-      instanceData[offset + 1] = circle.y; // center.y in rem
-      instanceData[offset + 2] = circle.radius; // radius in rem
-      instanceData[offset + 3] = circle.color[0];
-      instanceData[offset + 4] = circle.color[1];
-      instanceData[offset + 5] = circle.color[2];
-      instanceData[offset + 6] = circle.color[3];
+      instanceData[offset + 0] = shape.x; // center.x in rem
+      instanceData[offset + 1] = shape.y; // center.y in rem
+      instanceData[offset + 2] = shape.radius; // radius/size in rem
+      instanceData[offset + 3] = shape.color[0];
+      instanceData[offset + 4] = shape.color[1];
+      instanceData[offset + 5] = shape.color[2];
+      instanceData[offset + 6] = shape.color[3];
+      instanceData[offset + 7] = shape.shapeType; // shape type
     }
     
     this.instanceBuffer.destroy();
@@ -317,14 +371,14 @@ export class MultiCirclePipeline {
   }
 
   draw(passEncoder: GPURenderPassEncoder) {
-    if (this.circles.length === 0) return;
+    if (this.shapes.length === 0) return;
     
     passEncoder.setPipeline(this.pipeline);
     passEncoder.setVertexBuffer(0, this.vertexBuffer);
     passEncoder.setVertexBuffer(1, this.colorBuffer);
     passEncoder.setVertexBuffer(2, this.instanceBuffer);
     passEncoder.setBindGroup(0, this.bindGroup);
-    passEncoder.draw(6, this.circles.length); // 6 vertices per quad, number of instances
+    passEncoder.draw(6, this.shapes.length); // 6 vertices per quad, number of instances
   }
 
   destroy() {

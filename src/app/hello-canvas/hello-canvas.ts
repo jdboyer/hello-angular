@@ -3,11 +3,12 @@ import { RectanglePipeline } from '../pipelines/rectangle-pipeline';
 import { RoundedRectanglePipeline } from '../pipelines/rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from '../pipelines/textured-rectangle-pipeline';
 import { CirclePipeline } from '../pipelines/circle-pipeline';
-import { MultiCirclePipeline } from '../pipelines/multi-circle-pipeline';
+import { MultiShapePipeline } from '../pipelines/multi-circle-pipeline';
 import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
 import { HostRow } from '../chart-helper';
+import { ShapeScene } from '../pipelines/multi-circle-pipeline';
 
 export interface CircleScene {
   x: number;        // X position in rem units
@@ -18,11 +19,11 @@ export interface CircleScene {
 
 export interface Scene {
   gridLines: number[];
-  circles: CircleScene[]; // Array of circles to render
+  circles: ShapeScene[]; // Array of shapes to render (using circles property name for backward compatibility)
   xAxisLabels: string[]; // Array of strings to use as X-axis labels
   gridLineLabels: string[]; // Array of strings to use as Y-axis labels for grid lines
   bottomLabels: { text: string; xOffset: number }[]; // Array of bottom labels with x offsets in rem
-  spacing: number; // Spacing in rem units for both overlay text and circle columns
+  spacing: number; // Spacing in rem units for both overlay text and shape columns
   overlayXOffset: number; // X offset in rem units to shift all overlay text to the right
   scrollRangeRem: number; // Total scrollable width in rem units
 }
@@ -52,7 +53,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   private roundedRectanglePipeline!: RoundedRectanglePipeline;
   private texturedRectanglePipeline!: TexturedRectanglePipeline;
   private circlePipeline!: CirclePipeline;
-  private multiCirclePipeline!: MultiCirclePipeline;
+  private multiShapePipeline!: MultiShapePipeline;
   private gridPipeline!: GridPipeline;
 
   scrollRange = signal(100); // Range for scrollbar (0-1 in overlay component)
@@ -96,13 +97,13 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.bottomLabelsList.set(currentScene.bottomLabels);
     this.overlayXOffset.set(currentScene.overlayXOffset);
     
-    if (this.multiCirclePipeline && this.gridPipeline) {
+    if (this.multiShapePipeline && this.gridPipeline) {
       // Update grid lines
       this.gridPipeline = new GridPipeline(this.device, this.presentationFormat, currentScene.gridLines);
       
-      // Update circles
-      console.log(`Scene updated: ${currentScene.circles.length} circles`);
-      this.multiCirclePipeline.setCircles(currentScene.circles);
+      // Update shapes
+      console.log(`Scene updated: ${currentScene.circles.length} shapes`);
+      this.multiShapePipeline.setShapes(currentScene.circles);
       
       // Redraw the scene
       this.drawScene();
@@ -211,8 +212,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    * Update the scene with new circle data
    * @param circles New array of circles to render
    */
-  updateScene(circles: CircleScene[]) {
-    this.multiCirclePipeline.setCircles(circles);
+  updateScene(shapes: ShapeScene[]) {
+    this.multiShapePipeline.setShapes(shapes);
     this.drawScene(); // Redraw with new scene
   }
 
@@ -299,11 +300,11 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.roundedRectanglePipeline = new RoundedRectanglePipeline(this.device, this.presentationFormat)
     this.texturedRectanglePipeline = new TexturedRectanglePipeline(this.device, this.presentationFormat)
     this.circlePipeline = new CirclePipeline(this.device, this.presentationFormat)
-    this.multiCirclePipeline = new MultiCirclePipeline(this.device, this.presentationFormat)
+    this.multiShapePipeline = new MultiShapePipeline(this.device, this.presentationFormat)
     
-    // Set the circles from the scene
-    console.log(`Setting ${currentScene.circles.length} circles from scene. First: (${currentScene.circles[0].x}, ${currentScene.circles[0].y}), Last: (${currentScene.circles[currentScene.circles.length-1].x}, ${currentScene.circles[currentScene.circles.length-1].y})`);
-    this.multiCirclePipeline.setCircles(currentScene.circles)
+    // Set the shapes from the scene
+    console.log(`Setting ${currentScene.circles.length} shapes from scene. First: (${currentScene.circles[0].x}, ${currentScene.circles[0].y}), Last: (${currentScene.circles[currentScene.circles.length-1].x}, ${currentScene.circles[currentScene.circles.length-1].y})`);
+    this.multiShapePipeline.setShapes(currentScene.circles)
     
     // Set the labels from the scene
     this.textList.set(currentScene.xAxisLabels);
@@ -329,7 +330,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.roundedRectanglePipeline.destroy()
     this.texturedRectanglePipeline.destroy()
     this.circlePipeline.destroy()
-    this.multiCirclePipeline.destroy()
+    this.multiShapePipeline.destroy()
     this.gridPipeline.destroy();
   }
   private drawScene(): void {
@@ -379,7 +380,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     //this.circlePipeline.draw(passEncoder);
     const canvasWidthPixels = this.canvas.nativeElement.width;
     const canvasHeightPixels = this.canvas.nativeElement.height;
-    this.multiCirclePipeline.updateCanvasDimensions(this.device, canvasWidthPixels, canvasHeightPixels);
+    this.multiShapePipeline.updateCanvasDimensions(this.device, canvasWidthPixels, canvasHeightPixels);
     
     // Calculate scroll offset in pixels to match text movement
     const canvasWidth = this.canvas.nativeElement.width;
@@ -389,16 +390,16 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     
     // If scroll range is smaller than or equal to canvas width, no scroll offset needed
     if (scrollRange <= canvasWidthRem) {
-      this.multiCirclePipeline.updateScrollOffset(this.device, 0);
+      this.multiShapePipeline.updateScrollOffset(this.device, 0);
     } else {
       // Calculate scroll distance based on canvas width vs scroll range
       const totalScrollDistanceRem = scrollRange - canvasWidthRem;
       const totalScrollDistancePixels = totalScrollDistanceRem * pxToRemRatio;
       const scrollOffsetInPixels = -this.scrollPosition() * totalScrollDistancePixels;
-      this.multiCirclePipeline.updateScrollOffset(this.device, scrollOffsetInPixels);
+      this.multiShapePipeline.updateScrollOffset(this.device, scrollOffsetInPixels);
     }
     
-    this.multiCirclePipeline.draw(passEncoder);
+    this.multiShapePipeline.draw(passEncoder);
 
     // End the render pass
     passEncoder.end();

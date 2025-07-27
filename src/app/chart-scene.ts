@@ -1,5 +1,6 @@
 import { Scene, CircleScene } from './hello-canvas/hello-canvas';
 import { ChartScene, createSampleChartScene, createVersionColumns, HostRow } from './chart-helper';
+import { ShapeScene } from './pipelines/multi-circle-pipeline';
 
 /**
  * Create grid line positions for hostRows with proper spacing
@@ -99,25 +100,25 @@ function hslToRgba(h: number, s: number, l: number, a: number): [number, number,
 }
 
 /**
- * Create chart circles based on chart data
+ * Create chart shapes based on chart data
  */
-function createChartCircles(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8): CircleScene[] {
-  const circles: CircleScene[] = [];
+function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8): ShapeScene[] {
+  const shapes: ShapeScene[] = [];
   
   // Iterate through each version column
   chartData.versionColumns.forEach((versionColumn, columnIndex) => {
     const baseX = columnIndex * spacingRem + 4;
     
-    // Track how many circles have been added for each host index in this version column
-    const hostCircleCounts = new Map<number, number>();
+    // Track how many shapes have been added for each host index in this version column
+    const hostShapeCounts = new Map<number, number>();
     
     // Iterate through each test result in this version column
     versionColumn.testResults.forEach(testResult => {
-      // Get the count of circles already added for this host index in this version column
-      const circleCount = hostCircleCounts.get(testResult.hostIndex) || 0;
+      // Get the count of shapes already added for this host index in this version column
+      const shapeCount = hostShapeCounts.get(testResult.hostIndex) || 0;
       
-      // Calculate x offset based on the number of circles already added for this host
-      const xOffset = circleCount * 0.5;
+      // Calculate x offset based on the number of shapes already added for this host
+      const xOffset = shapeCount * 0.5;
       const x = baseX + xOffset;
       
       // Get the y position from the corresponding host grid line
@@ -131,19 +132,24 @@ function createChartCircles(chartData: ChartScene, hostGridLines: number[], spac
       
       const color = hslToRgba(hue, saturation, lightness, alpha);
       
-      circles.push({
+      // Shape type based on test result value (1-5)
+      // 1 = Circle, 2 = Square, 3 = Diamond, 4 = Triangle, 5 = Circle (cycle back)
+      const shapeType = (testResult.result - 1) % 4;
+      
+      shapes.push({
         x: x,
         y: y,
         radius: 0.48 + (testResult.result / 5) * 0.32, // Radius based on test result value
-        color: color
+        color: color,
+        shapeType: shapeType
       });
       
       // Increment the count for this host index
-      hostCircleCounts.set(testResult.hostIndex, circleCount + 1);
+      hostShapeCounts.set(testResult.hostIndex, shapeCount + 1);
     });
   });
   
-  return circles;
+  return shapes;
 }
 
 /**
@@ -174,7 +180,7 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
   
   return {
     gridLines: hostGridLines,
-    circles: createChartCircles(chartData, hostGridLines, spacingRem),
+    circles: createChartShapes(chartData, hostGridLines, spacingRem),
     xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
