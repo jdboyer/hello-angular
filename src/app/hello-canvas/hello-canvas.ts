@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ViewChild, ElementRef, HostListener, OnDestroy, input, effect, computed } from '@angular/core';
+import { AfterViewInit, Component, ViewChild, ElementRef, HostListener, OnDestroy, input, effect, computed, output, EventEmitter } from '@angular/core';
 import { RectanglePipeline } from '../pipelines/rectangle-pipeline';
 import { RoundedRectanglePipeline } from '../pipelines/rounded-rectangle-pipeline';
 import { TexturedRectanglePipeline } from '../pipelines/textured-rectangle-pipeline';
@@ -62,6 +62,9 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   
   // Input signal for scroll range in rem units (total scrollable width in rem)
   scrollRangeRem = input<number>(80);
+  
+  // Output for mouse position changes
+  mousePositionChange = output<{x: number, y: number}>();
   
   // Computed signal for text spacing from scene
   textSpacing = computed(() => this.scene().spacing);
@@ -175,6 +178,15 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     //console.log(`Scroll position changed to: ${newPosition}`);
     this.scrollPosition.set(newPosition);
     this.drawScene(); // Redraw with new scroll position
+  }
+
+  /**
+   * Handle mouse position changes from the overlay component
+   * @param position Mouse position {x, y}
+   */
+  onMousePositionChange(position: {x: number, y: number}) {
+    // Emit the mouse position to the parent component
+    this.mousePositionChange.emit(position);
   }
 
   /**

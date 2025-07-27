@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
@@ -9,7 +10,7 @@ import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas'
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HelloCanvas, FormsModule, MatFormFieldModule, MatInputModule, MatSliderModule],
+  imports: [RouterOutlet, HelloCanvas, FormsModule, DecimalPipe, MatFormFieldModule, MatInputModule, MatSliderModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -21,6 +22,9 @@ export class App {
   
   // Signal for scroll range in rem units (total scrollable width in rem)
   protected readonly scrollRangeRem = signal<number>(200); // 80rem = 5x canvas width (assuming 16rem canvas width)
+  
+  // Signal for mouse position
+  protected readonly mousePosition = signal<{x: number, y: number}>({x: 0, y: 0});
 
   /**
    * Create a default scene with column pattern
@@ -192,6 +196,13 @@ export class App {
     if (!isNaN(newScrollRange) && newScrollRange > 0) {
       this.scrollRangeRem.set(newScrollRange);
     }
+  }
+
+  /**
+   * Handle mouse position changes from the canvas component
+   */
+  onMousePositionChange(position: {x: number, y: number}): void {
+    this.mousePosition.set(position);
   }
 
 

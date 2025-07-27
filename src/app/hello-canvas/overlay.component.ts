@@ -1,10 +1,10 @@
-import { Component, Input, Output, signal, computed, EventEmitter, Signal } from '@angular/core';
+import { Component, Input, Output, signal, computed, EventEmitter, Signal, ViewChild, ElementRef } from '@angular/core';
 
 @Component({
   selector: 'app-overlay',
   standalone: true,
   template: `
-    <div class="overlay-container">
+    <div #overlayContainer class="overlay-container" (mousemove)="onMouseMove($event)">
       @for (text of visibleTexts(); track $index; let i = $index) {
         <div class="tick-container top-tick-container"
              [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX() + convertRemToPixels(overlayXOffset())">
@@ -38,6 +38,8 @@ import { Component, Input, Output, signal, computed, EventEmitter, Signal } from
   styleUrls: ['./overlay.component.css']
 })
 export class OverlayComponent {
+  @ViewChild('overlayContainer', { static: true }) overlayContainer!: ElementRef<HTMLElement>;
+  
   @Input({ required: true }) scrollRange!: Signal<number>;
   @Input({ required: true }) scrollPosition = signal(0);
   @Input({ required: true }) textList = signal<string[]>([]);
@@ -47,6 +49,7 @@ export class OverlayComponent {
   @Input({ required: true }) canvasWidth = signal(500);
   @Input() textSpacing!: number; // Spacing in rem units
   @Output() scrollPositionChange = new EventEmitter<number>();
+  @Output() mousePositionChange = new EventEmitter<{x: number, y: number}>();
 
   get canvasWidthValue() {
     return this.canvasWidth();
@@ -54,6 +57,52 @@ export class OverlayComponent {
 
   convertRemToPixels(rem: number): number {
     return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  }
+
+  convertPixelsToRem(pixels: number): number {
+    return pixels / parseFloat(getComputedStyle(document.documentElement).fontSize);
+  }
+
+  calculateSceneRelativePosition(event: MouseEvent): {x: number, y: number} {
+    // Get the overlay container element using ViewChild reference
+    const overlayElement = this.overlayContainer.nativeElement;
+    const rect = overlayElement.getBoundingClientRect();
+    
+    // Calculate mouse position relative to the overlay container
+    const relativeX = event.clientX - rect.left;
+    const relativeY = event.clientY - rect.top;
+    
+    // Convert to rem units
+    const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const xRem = relativeX / pxToRemRatio;
+    const yRem = relativeY / pxToRemRatio;
+    
+    // Get current scroll and offset information
+    const scrollRange = this.scrollRange();
+    const canvasWidth = this.canvasWidth();
+    const canvasWidthRem = canvasWidth / pxToRemRatio;
+    const overlayXOffset = this.overlayXOffset();
+    
+    // Calculate the current scroll offset in rem
+    let scrollOffsetRem = 0;
+    if (scrollRange > canvasWidthRem) {
+      const totalScrollDistanceRem = scrollRange - canvasWidthRem;
+      const currentScrollDistanceRem = this.scrollPosition() * totalScrollDistanceRem;
+      scrollOffsetRem = currentScrollDistanceRem;
+    }
+    
+    // Calculate scene-relative position
+    // X position: relative to scene (accounting for scroll and overlay offset)
+    const sceneX = xRem + scrollOffsetRem - overlayXOffset;
+    
+    // Y position: relative to top of canvas (y = 0 at top)
+    // The canvas is 10rem height and centered in the 60rem container
+    const containerHeightRem = 60; // From .example-container height
+    const canvasHeightRem = 10; // From .my-canvas height
+    const canvasTopY = (containerHeightRem - canvasHeightRem) / 2; // 25rem from container top
+    const sceneY = yRem - canvasTopY;
+    
+    return {x: sceneX, y: sceneY};
   }
 
   getBottomLabelsScrollOffset(): number {
@@ -147,6 +196,11 @@ export class OverlayComponent {
   }
 
   onMouseMove(event: MouseEvent): void {
+    // Calculate mouse position relative to scene in rem units
+    const sceneRelativePosition = this.calculateSceneRelativePosition(event);
+    this.mousePositionChange.emit(sceneRelativePosition);
+    
+    // Handle dragging if active
     if (!this.isDragging) return;
     
     const canvasWidth = this.canvasWidth();

@@ -27,7 +27,12 @@
       step="1"
     />
   </div>
+  
+  <div class="mouse-position-display">
+    <label>Mouse Position (rem):</label>
+    <span class="position-text">X: {{ mousePosition().x | number:'1.1-1' }}, Y: {{ mousePosition().y | number:'1.1-1' }}</span>
+  </div>
 </div>
 
-<app-hello-canvas [scene]="scene()" [scrollRangeRem]="scrollRangeRem()" />
+<app-hello-canvas [scene]="scene()" [scrollRangeRem]="scrollRangeRem()" (mousePositionChange)="onMousePositionChange($event)" />
 <router-outlet />
