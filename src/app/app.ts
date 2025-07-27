@@ -118,7 +118,7 @@ export class App {
     const circlesPerColumn = 8; // Number of circles per column
     
     for (let col = 0; col < numColumns; col++) {
-      const x = (col * spacingRem) - 48; // Start at -48rem and go right (spacing in rem)
+      const x = (col * spacingRem) - 48 + 4; // Start at -48rem and go right (spacing in rem)
       
       for (let row = 0; row < circlesPerColumn; row++) {
         // Distribute circles evenly in the column from -16 to 16 rem
