@@ -1,4 +1,5 @@
 <div class="example-container">
+  <div class="left-sidebar"></div>
   <div class="chart-container" style="position:relative;">
     <app-overlay [scrollRange]="computedScrollRange" [scrollPosition]="scrollPosition" [textList]="textList" [bottomLabelsList]="bottomLabelsList" [offsetX]="offsetX" [overlayXOffset]="overlayXOffset" [canvasWidth]="canvasWidth" [textSpacing]="textSpacing()" (scrollPositionChange)="onScrollPositionChange($event)" (mousePositionChange)="onMousePositionChange($event)"></app-overlay>
     <canvas #drawingCanvas class="my-canvas"></canvas>
