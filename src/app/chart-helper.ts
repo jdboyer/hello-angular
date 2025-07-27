@@ -223,6 +223,9 @@ export function createVersionColumns(hostRows: HostRow[]): VersionColumn[] {
       // Update the count for this host
       hostTestCounts.set(randomHostIndex, hostTestCounts.get(randomHostIndex)! + 1);
     }
+    if (versionNum > 97) {
+      console.log(`Version ${version} has ${testResults.length} test results`);
+    }
     
     versionColumns.push({
       version,

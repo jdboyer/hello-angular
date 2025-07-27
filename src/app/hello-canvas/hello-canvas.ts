@@ -77,11 +77,12 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   chartScene = input.required<ChartScene>();
   
   // Default spacing and scroll range
-  spacing = signal(8);
-  scrollRangeRem = signal(200);
+  //spacing = signal(8);
+  //scrollRangeRem = signal(200);
   
   // Computed signal to process ChartScene into Scene
-  scene = computed(() => processChartScene(this.chartScene(), this.spacing(), this.scrollRangeRem()));
+  //scene = computed(() => processChartScene(this.chartScene(), this.spacing(), this.scrollRangeRem()));
+  scene = computed(() => processChartScene(this.chartScene()));
   
   //private context!: CanvasRenderingContext2D; // Stores the 2D rendering context
   private myPath: Path2D = new Path2D(); 
@@ -119,7 +120,7 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   
   // Computed signal for scroll range based on rem value
   computedScrollRange = computed(() => {
-    const scrollRangeRem = this.scrollRangeRem();
+    const scrollRangeRem = this.scene().scrollRangeRem;
     const canvasWidthPixels = this.canvasWidth();
     const pxToRemRatio = parseFloat(getComputedStyle(document.documentElement).fontSize);
     const canvasWidthRem = canvasWidthPixels / pxToRemRatio;
