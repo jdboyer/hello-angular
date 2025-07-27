@@ -24,6 +24,7 @@ export interface Scene {
   bottomLabels: { text: string; xOffset: number }[]; // Array of bottom labels with x offsets in rem
   spacing: number; // Spacing in rem units for both overlay text and circle columns
   overlayXOffset: number; // X offset in rem units to shift all overlay text to the right
+  scrollRangeRem: number; // Total scrollable width in rem units
 }
 
 @Component({
@@ -37,9 +38,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   
   // Input signal for the scene
   scene = input.required<Scene>();
-  
-  // Input signal for host rows data
-  hostRows = input<HostRow[]>([]);
   
   //private context!: CanvasRenderingContext2D; // Stores the 2D rendering context
   private myPath: Path2D = new Path2D(); 
@@ -66,8 +64,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   offsetX = signal(0);
   overlayXOffset = signal(0); // X offset in rem units to shift all overlay text
   
-  // Input signal for scroll range in rem units (total scrollable width in rem)
-  scrollRangeRem = input<number>(80);
+  // Computed signal for scroll range from scene
+  scrollRangeRem = computed(() => this.scene().scrollRangeRem);
   
   // Output for mouse position changes
   mousePositionChange = output<{x: number, y: number}>();

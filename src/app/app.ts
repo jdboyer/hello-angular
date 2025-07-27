@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, computed } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
@@ -7,7 +7,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas';
 import { createChartScene } from './chart-scene';
-import { createSampleChartScene } from './chart-helper';
 
 @Component({
   selector: 'app-root',
@@ -19,30 +18,28 @@ export class App {
   protected readonly title = signal('hello-angular');
 
   // Create a signal for the scene
-  protected readonly scene = signal<Scene>(createChartScene(8));
-  
-  // Signal for chart data
-  protected readonly chartData = signal(createSampleChartScene());
-  
-  // Signal for scroll range in rem units (total scrollable width in rem)
-  protected readonly scrollRangeRem = signal<number>(200);
+  protected readonly scene = signal<Scene>(createChartScene(8, 200));
   
   // Signal for mouse position
   protected readonly mousePosition = signal<{x: number, y: number}>({x: 0, y: 0});
+
+  // Computed signal to get scroll range from scene
+  protected readonly scrollRangeRem = computed(() => this.scene().scrollRangeRem);
 
   /**
    * Switch to chart scene
    */
   createChartScene(): void {
     const currentScene = this.scene();
-    this.scene.set(createChartScene(currentScene.spacing));
+    this.scene.set(createChartScene(currentScene.spacing, currentScene.scrollRangeRem));
   }
 
   /**
    * Update spacing and regenerate circles
    */
   updateSpacing(newSpacing: number): void {
-    this.scene.set(createChartScene(newSpacing));
+    const currentScene = this.scene();
+    this.scene.set(createChartScene(newSpacing, currentScene.scrollRangeRem));
   }
 
   /**
@@ -61,7 +58,8 @@ export class App {
   onScrollRangeChange(event: any): void {
     const newScrollRange = parseFloat(event.target.value);
     if (!isNaN(newScrollRange) && newScrollRange > 0) {
-      this.scrollRangeRem.set(newScrollRange);
+      const currentScene = this.scene();
+      this.scene.set(createChartScene(currentScene.spacing, newScrollRange));
     }
   }
 

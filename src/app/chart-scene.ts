@@ -163,7 +163,7 @@ function createGridLineLabels(hostRows: HostRow[]): string[] {
 /**
  * Create a chart scene with custom spacing
  */
-export function createChartScene(spacingRem: number = 8): Scene {
+export function createChartScene(spacingRem: number = 8, scrollRangeRem: number = 200): Scene {
   const monthLabels = createMonthLabels();
   const chartData = createSampleChartScene();
   const hostGridLines = createHostGridLines(chartData.hostRows);
@@ -179,6 +179,7 @@ export function createChartScene(spacingRem: number = 8): Scene {
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
     spacing: spacingRem,
-    overlayXOffset: 4
+    overlayXOffset: 4,
+    scrollRangeRem: scrollRangeRem
   };
 } 
