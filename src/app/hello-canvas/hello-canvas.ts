@@ -216,6 +216,106 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     this.drawScene(); // Redraw with new scene
   }
 
+  /**
+   * Enable or disable culling for performance optimization
+   * @param enable Whether to enable culling
+   * @param margin Extra margin in pixels for culling (default: 50)
+   */
+  setCulling(enable: boolean, margin: number = 50): void {
+    if (this.multiCirclePipeline) {
+      this.multiCirclePipeline.setCulling(enable, margin);
+      this.drawScene();
+    }
+  }
+
+  /**
+   * Enable spatial partitioning for very large datasets
+   * @param enable Whether to enable spatial partitioning
+   * @param cellSize Size of each grid cell in pixels (default: 100)
+   */
+  setSpatialPartitioning(enable: boolean, cellSize: number = 100): void {
+    if (this.multiCirclePipeline) {
+      this.multiCirclePipeline.setSpatialPartitioning(enable, cellSize);
+      this.drawScene();
+    }
+  }
+
+  /**
+   * Get culling statistics for debugging and performance monitoring
+   * @returns Object with culling statistics
+   */
+  getCullingStats(): { total: number; visible: number; culled: number; percentage: number } | null {
+    if (this.multiCirclePipeline) {
+      return this.multiCirclePipeline.getCullingStats();
+    }
+    return null;
+  }
+
+  /**
+   * Create a large dataset for testing culling performance
+   * @param count Number of circles to create
+   * @returns Array of randomly positioned circles
+   */
+  createLargeDataset(count: number = 1000): CircleScene[] {
+    const circles: CircleScene[] = [];
+    
+    for (let i = 0; i < count; i++) {
+      // Spread circles across a wide area to test culling
+      const x = (Math.random() - 0.5) * 1000; // -500 to 500 rem
+      const y = Math.random() * 60; // 0 to 60 rem (matching your chart height)
+      const radius = 0.3 + Math.random() * 0.7; // 0.3 to 1.0 rem
+      
+      // Random color
+      const hue = Math.random() * 360;
+      const saturation = 0.6 + Math.random() * 0.4; // 0.6 to 1.0
+      const lightness = 0.4 + Math.random() * 0.3; // 0.4 to 0.7
+      const alpha = 0.7 + Math.random() * 0.3; // 0.7 to 1.0
+      
+      const color = this.hslToRgba(hue, saturation, lightness, alpha);
+      
+      circles.push({
+        x: x,
+        y: y,
+        radius: radius,
+        color: color
+      });
+    }
+    
+    return circles;
+  }
+
+  /**
+   * Convert HSL to RGBA color
+   * @param h Hue (0-360)
+   * @param s Saturation (0-1)
+   * @param l Lightness (0-1)
+   * @param a Alpha (0-1)
+   * @returns RGBA array
+   */
+  private hslToRgba(h: number, s: number, l: number, a: number): [number, number, number, number] {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    
+    let r = 0, g = 0, b = 0;
+    
+    if (h >= 0 && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (h >= 60 && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (h >= 120 && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (h >= 180 && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (h >= 240 && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (h >= 300 && h < 360) {
+      r = c; g = 0; b = x;
+    }
+    
+    return [r + m, g + m, b + m, a];
+  }
+
   @HostListener('window:resize', ['$event'])
   onResize(event: Event) {
     const oldCanvasWidth = this.canvasWidth();

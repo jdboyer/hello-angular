@@ -15,6 +15,14 @@ export class MultiCirclePipeline {
   private canvasWidthPixels: number = 1.0;
   private canvasHeightPixels: number = 1.0;
   private pxToRemRatio: number = 16.0; // Default: 16px = 1rem
+  private visibleCircles: CircleScene[] = []; // New: filtered visible circles
+  
+  // Culling configuration
+  private enableCulling: boolean = true;
+  private cullingMargin: number = 50; // Extra margin in pixels for culling
+  private useSpatialPartitioning: boolean = false; // For very large datasets
+  private spatialGrid: Map<string, CircleScene[]> = new Map();
+  private gridCellSize: number = 100; // Size of each grid cell in pixels
 
   constructor(device: GPUDevice, presentationFormat: GPUTextureFormat) {
     this.device = device;
@@ -243,23 +251,174 @@ export class MultiCirclePipeline {
   }
 
   /**
+   * Enable or disable culling
+   * @param enable Whether to enable culling
+   * @param margin Extra margin in pixels for culling (default: 50)
+   */
+  setCulling(enable: boolean, margin: number = 50): void {
+    this.enableCulling = enable;
+    this.cullingMargin = margin;
+    if (enable) {
+      this.filterVisibleCircles();
+      this.updateInstanceBuffer();
+    } else {
+      this.visibleCircles = this.circles;
+      this.updateInstanceBuffer();
+    }
+  }
+
+  /**
+   * Enable spatial partitioning for very large datasets
+   * @param enable Whether to enable spatial partitioning
+   * @param cellSize Size of each grid cell in pixels (default: 100)
+   */
+  setSpatialPartitioning(enable: boolean, cellSize: number = 100): void {
+    this.useSpatialPartitioning = enable;
+    this.gridCellSize = cellSize;
+    if (enable) {
+      this.buildSpatialGrid();
+    }
+    this.filterVisibleCircles();
+    this.updateInstanceBuffer();
+  }
+
+  /**
+   * Build spatial grid for efficient culling
+   */
+  private buildSpatialGrid(): void {
+    this.spatialGrid.clear();
+    
+    for (const circle of this.circles) {
+      const centerXInPixels = circle.x * this.pxToRemRatio;
+      const centerYInPixels = circle.y * this.pxToRemRatio;
+      const radiusInPixels = circle.radius * this.pxToRemRatio;
+      
+      // Calculate grid cells that this circle might overlap
+      const left = Math.floor((centerXInPixels - radiusInPixels) / this.gridCellSize);
+      const right = Math.floor((centerXInPixels + radiusInPixels) / this.gridCellSize);
+      const top = Math.floor((centerYInPixels - radiusInPixels) / this.gridCellSize);
+      const bottom = Math.floor((centerYInPixels + radiusInPixels) / this.gridCellSize);
+      
+      // Add circle to all overlapping cells
+      for (let x = left; x <= right; x++) {
+        for (let y = top; y <= bottom; y++) {
+          const key = `${x},${y}`;
+          if (!this.spatialGrid.has(key)) {
+            this.spatialGrid.set(key, []);
+          }
+          this.spatialGrid.get(key)!.push(circle);
+        }
+      }
+    }
+  }
+
+  /**
+   * Check if a circle is visible within the current viewport
+   * @param circle The circle to check
+   * @returns true if the circle is visible, false otherwise
+   */
+  private isCircleVisible(circle: CircleScene): boolean {
+    if (!this.enableCulling) return true;
+    
+    // Convert circle position to pixels
+    const centerXInPixels = circle.x * this.pxToRemRatio;
+    const centerYInPixels = circle.y * this.pxToRemRatio;
+    const radiusInPixels = circle.radius * this.pxToRemRatio;
+    
+    // Apply scroll offset
+    const adjustedXInPixels = centerXInPixels + this.scrollOffsetInPixels;
+    
+    // Calculate bounding box in pixels with margin
+    const left = adjustedXInPixels - radiusInPixels - this.cullingMargin;
+    const right = adjustedXInPixels + radiusInPixels + this.cullingMargin;
+    const top = centerYInPixels - radiusInPixels - this.cullingMargin;
+    const bottom = centerYInPixels + radiusInPixels + this.cullingMargin;
+    
+    // Check if bounding box intersects with canvas
+    return !(right < 0 || left > this.canvasWidthPixels || 
+             bottom < 0 || top > this.canvasHeightPixels);
+  }
+
+  /**
+   * Filter circles to only include visible ones
+   */
+  private filterVisibleCircles(): void {
+    if (!this.enableCulling) {
+      this.visibleCircles = this.circles;
+      return;
+    }
+
+    if (this.useSpatialPartitioning) {
+      this.filterVisibleCirclesWithSpatialGrid();
+    } else {
+      this.visibleCircles = this.circles.filter(circle => this.isCircleVisible(circle));
+    }
+  }
+
+  /**
+   * Filter circles using spatial grid for better performance with large datasets
+   */
+  private filterVisibleCirclesWithSpatialGrid(): void {
+    const visibleCircles = new Set<CircleScene>();
+    
+    // Calculate visible grid cells
+    const left = Math.floor((-this.cullingMargin) / this.gridCellSize);
+    const right = Math.floor((this.canvasWidthPixels + this.cullingMargin) / this.gridCellSize);
+    const top = Math.floor((-this.cullingMargin) / this.gridCellSize);
+    const bottom = Math.floor((this.canvasHeightPixels + this.cullingMargin) / this.gridCellSize);
+    
+    // Check circles in visible grid cells
+    for (let x = left; x <= right; x++) {
+      for (let y = top; y <= bottom; y++) {
+        const key = `${x},${y}`;
+        const cellCircles = this.spatialGrid.get(key);
+        if (cellCircles) {
+          for (const circle of cellCircles) {
+            if (this.isCircleVisible(circle)) {
+              visibleCircles.add(circle);
+            }
+          }
+        }
+      }
+    }
+    
+    this.visibleCircles = Array.from(visibleCircles);
+  }
+
+  /**
+   * Get culling statistics for debugging
+   */
+  getCullingStats(): { total: number; visible: number; culled: number; percentage: number } {
+    const total = this.circles.length;
+    const visible = this.visibleCircles.length;
+    const culled = total - visible;
+    const percentage = total > 0 ? (culled / total) * 100 : 0;
+    
+    return { total, visible, culled, percentage };
+  }
+
+  /**
    * Set the circles to render
    * @param circles Array of circle descriptions in rem units
    */
   setCircles(circles: CircleScene[]) {
     this.circles = circles;
+    if (this.useSpatialPartitioning) {
+      this.buildSpatialGrid();
+    }
+    this.filterVisibleCircles();
     this.updateInstanceBuffer();
   }
 
   /**
-   * Update the instance buffer with current circles
+   * Update the instance buffer with current visible circles
    */
   private updateInstanceBuffer() {
-    if (this.circles.length === 0) return;
+    if (this.visibleCircles.length === 0) return;
     
-    const instanceData = new Float32Array(this.circles.length * 7); // 7 floats per instance
-    for (let i = 0; i < this.circles.length; i++) {
-      const circle = this.circles[i];
+    const instanceData = new Float32Array(this.visibleCircles.length * 7); // 7 floats per instance
+    for (let i = 0; i < this.visibleCircles.length; i++) {
+      const circle = this.visibleCircles[i];
       const offset = i * 7;
       
       // Store rem coordinates directly (transformation happens in vertex shader)
@@ -290,6 +449,8 @@ export class MultiCirclePipeline {
     this.canvasWidthPixels = canvasWidthPixels;
     this.canvasHeightPixels = canvasHeightPixels;
     this.aspectRatio = canvasWidthPixels / canvasHeightPixels;
+    this.filterVisibleCircles(); // Re-filter when canvas size changes
+    this.updateInstanceBuffer();
     this.updateUniforms(device);
   }
 
@@ -300,6 +461,8 @@ export class MultiCirclePipeline {
    */
   updateScrollOffset(device: GPUDevice, scrollOffsetInPixels: number) {
     this.scrollOffsetInPixels = scrollOffsetInPixels;
+    this.filterVisibleCircles(); // Re-filter when scroll changes
+    this.updateInstanceBuffer();
     this.updateUniforms(device);
   }
 
@@ -317,14 +480,14 @@ export class MultiCirclePipeline {
   }
 
   draw(passEncoder: GPURenderPassEncoder) {
-    if (this.circles.length === 0) return;
+    if (this.visibleCircles.length === 0) return;
     
     passEncoder.setPipeline(this.pipeline);
     passEncoder.setVertexBuffer(0, this.vertexBuffer);
     passEncoder.setVertexBuffer(1, this.colorBuffer);
     passEncoder.setVertexBuffer(2, this.instanceBuffer);
     passEncoder.setBindGroup(0, this.bindGroup);
-    passEncoder.draw(6, this.circles.length); // 6 vertices per quad, number of instances
+    passEncoder.draw(6, this.visibleCircles.length); // 6 vertices per quad, number of visible instances
   }
 
   destroy() {
