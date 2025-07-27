@@ -20,12 +20,12 @@ function createHostGridLines(hostRows: HostRow[]): number[] {
     }
   }
   
-  // Calculate available space for hosts (0.1 to 0.9 = 0.8 total space)
+  // Calculate available space for hosts (0.15 to 0.8 = 0.65 total space)
   const availableSpace = 0.8 - totalGaps;
   const hostSpacing = availableSpace / hostRows.length;
   
   // Calculate grid line positions
-  let currentY = 0.1; // Start at 0.1
+  let currentY = 0.07; // Start at 0.1
   const smallGap = 0.02;
   const largeGap = 0.04;
   
@@ -146,7 +146,7 @@ function createGridLineLabels(hostRows: HostRow[]): string[] {
     } else {
       return `${host.hostname} (${host.platform})`;
     }
-  }).reverse();
+  });
 }
 
 /**
