@@ -1,5 +1,15 @@
 <div class="example-container">
-  <div class="left-sidebar"></div>
+  <div class="left-sidebar">
+    <div class="y-axis-labels">
+      @for (host of hostRows(); track host.hostname; let i = $index) {
+        <div class="y-axis-label" 
+             [style.top]="getYAxisLabelPosition(i) + '%'">
+          <span class="hostname">{{ host.hostname }}</span>
+          <span class="platform-info">{{ host.platform }}{{ host.subplatform ? ' - ' + host.subplatform : '' }}</span>
+        </div>
+      }
+    </div>
+  </div>
   <div class="chart-container" style="position:relative;">
     <app-overlay [scrollRange]="computedScrollRange" [scrollPosition]="scrollPosition" [textList]="textList" [bottomLabelsList]="bottomLabelsList" [offsetX]="offsetX" [overlayXOffset]="overlayXOffset" [canvasWidth]="canvasWidth" [textSpacing]="textSpacing()" (scrollPositionChange)="onScrollPositionChange($event)" (mousePositionChange)="onMousePositionChange($event)"></app-overlay>
     <canvas #drawingCanvas class="my-canvas"></canvas>

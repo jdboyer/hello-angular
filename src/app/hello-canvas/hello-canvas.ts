@@ -7,6 +7,7 @@ import { MultiCirclePipeline } from '../pipelines/multi-circle-pipeline';
 import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
+import { HostRow } from '../chart-helper';
 
 export interface CircleScene {
   x: number;        // X position in rem units
@@ -35,6 +36,9 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   
   // Input signal for the scene
   scene = input.required<Scene>();
+  
+  // Input signal for host rows data
+  hostRows = input<HostRow[]>([]);
   
   //private context!: CanvasRenderingContext2D; // Stores the 2D rendering context
   private myPath: Path2D = new Path2D(); 
@@ -187,6 +191,18 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   onMousePositionChange(position: {x: number, y: number}) {
     // Emit the mouse position to the parent component
     this.mousePositionChange.emit(position);
+  }
+
+  /**
+   * Get the Y position for a y-axis label based on the grid line positions
+   */
+  getYAxisLabelPosition(index: number): number {
+    const gridLines = this.scene().gridLines;
+    if (index >= 0 && index < gridLines.length) {
+      // Convert from 0-1 range to percentage (0-100)
+      return gridLines[index] * 100;
+    }
+    return 0;
   }
 
   /**

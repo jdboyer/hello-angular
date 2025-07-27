@@ -33,5 +33,9 @@
   </div>
 </div>
 
-<app-hello-canvas [scene]="scene()" [scrollRangeRem]="scrollRangeRem()" (mousePositionChange)="onMousePositionChange($event)" />
+<app-hello-canvas 
+  [scene]="scene()" 
+  [scrollRangeRem]="scrollRangeRem()" 
+  [hostRows]="chartData().hostRows"
+  (mousePositionChange)="onMousePositionChange($event)" />
 <router-outlet />

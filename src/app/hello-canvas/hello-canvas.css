@@ -14,6 +14,40 @@
     height: 100%;
     background-color: #333;
     flex-shrink: 0;
+    position: relative;
+}
+
+.y-axis-labels {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.y-axis-label {
+    position: absolute;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 0.75rem;
+    font-family: monospace;
+    text-align: right;
+    max-width: 15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.y-axis-label .hostname {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.1rem;
+}
+
+.y-axis-label .platform-info {
+    display: block;
+    font-size: 0.65rem;
+    color: #ccc;
+    opacity: 0.8;
 }
 
 .chart-container {

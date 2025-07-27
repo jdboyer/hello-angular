@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { HelloCanvas, Scene, CircleScene } from './hello-canvas/hello-canvas';
 import { createChartScene } from './chart-scene';
+import { createSampleChartScene } from './chart-helper';
 
 @Component({
   selector: 'app-root',
@@ -19,6 +20,9 @@ export class App {
 
   // Create a signal for the scene
   protected readonly scene = signal<Scene>(createChartScene(8));
+  
+  // Signal for chart data
+  protected readonly chartData = signal(createSampleChartScene());
   
   // Signal for scroll range in rem units (total scrollable width in rem)
   protected readonly scrollRangeRem = signal<number>(200);
