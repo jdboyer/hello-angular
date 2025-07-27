@@ -1,35 +1,3 @@
-<div class="scene-controls">
-  <button (click)="createChartScene()">Chart Scene</button>
-  
-  <div class="spacing-control">
-    <label for="spacing-input">Spacing (rem):</label>
-    <input 
-      id="spacing-input"
-      type="number" 
-      [value]="scene().spacing" 
-      (input)="onSpacingChange($event)"
-      min="1" 
-      max="20" 
-      step="0.5"
-    />
-  </div>
-  
-  <div class="test-controls">
-    <button (click)="testFindShapeByHostAndVersion('James', 'v1.0.1')">Find James v1.0.1</button>
-    <button (click)="testHighlightByHostAndVersion('Mary', 'v1.0.5')">Highlight Mary v1.0.5</button>
-  </div>
-  
-  <div class="mouse-position-display">
-    <label>Mouse Position:</label>
-    <span class="position-text">Version: {{ mousePosition().version || 'None' }}, Host: {{ mousePosition().nearestYAxisLabel || 'None' }}</span>
-  </div>
-  
-  <div class="highlight-display">
-    <label>Highlighted Shape:</label>
-    <span class="highlight-text">{{ currentHighlightIndex() >= 0 ? 'Index ' + currentHighlightIndex() : 'None' }}</span>
-  </div>
-</div>
-
 <app-hello-canvas 
   [scene]="scene()" 
   (mousePositionChange)="onMousePositionChange($event)" />

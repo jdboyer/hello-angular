@@ -204,13 +204,40 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     // Calculate version from X position
     const version = this.getVersionFromXPosition(position.x);
     
-    // Emit the mouse position with the nearest label and version to the parent component
-    this.mousePositionChange.emit({
+    // Create the mouse position object
+    const mousePosition: MousePosition = {
       x: position.x,
       y: position.y,
       nearestYAxisLabel: nearestLabel,
       version: version
-    });
+    };
+    
+    // Handle highlighting internally
+    this.highlightCurrentPosition(mousePosition);
+    
+    // Emit the mouse position with the nearest label and version to the parent component
+    this.mousePositionChange.emit(mousePosition);
+  }
+
+  /**
+   * Highlight the shape at the current mouse position
+   */
+  private highlightCurrentPosition(mousePos: MousePosition): void {
+    if (mousePos.version && mousePos.nearestYAxisLabel) {
+      // Extract hostname from the label
+      const match = mousePos.nearestYAxisLabel.match(/^([^(]+)/);
+      if (match) {
+        const hostname = match[1].trim();
+        const success = this.highlightShapeByHostAndVersion(hostname, mousePos.version, mousePos.x);
+        if (!success) {
+          // If no shape found, clear the highlight
+          this.highlightShape(-1);
+        }
+      }
+    } else {
+      // If no valid position, clear the highlight
+      this.highlightShape(-1);
+    }
   }
 
   /**
