@@ -4,7 +4,7 @@
   right: 0;
   bottom: 0;
   top: 0;
-  pointer-events: none; /* allow clicks to pass through except for scrollbar */
+  pointer-events: auto; /* allow mouse events for tracking */
   z-index: 20;
   overflow: hidden; /* prevent horizontal scrollbar from off-screen labels */
 }
@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
+  pointer-events: none; /* ensure ticks don't interfere with mouse tracking */
 }
 
 .top-tick-container {
