@@ -30,17 +30,17 @@ export class MultiShapePipeline {
     this.device = device;
     
     // --- Setup for Multiple Shapes ---
-    // Define a small quad that will be instanced for each shape
+    // Define a larger quad that will be instanced for each shape
     const quadPositions = new Float32Array([
       // Triangle 1
-      -0.5,  0.5, 0.0, 1.0, // Top-left
-      -0.5, -0.5, 0.0, 1.0, // Bottom-left
-       0.5, -0.5, 0.0, 1.0, // Bottom-right
+      -1.0,  1.0, 0.0, 1.0, // Top-left
+      -1.0, -1.0, 0.0, 1.0, // Bottom-left
+       1.0, -1.0, 0.0, 1.0, // Bottom-right
 
       // Triangle 2
-      -0.5,  0.5, 0.0, 1.0, // Top-left
-       0.5, -0.5, 0.0, 1.0, // Bottom-right
-       0.5,  0.5, 0.0, 1.0, // Top-right
+      -1.0,  1.0, 0.0, 1.0, // Top-left
+       1.0, -1.0, 0.0, 1.0, // Bottom-right
+       1.0,  1.0, 0.0, 1.0, // Top-right
     ]);
 
     const quadColors = new Float32Array([
@@ -229,7 +229,7 @@ export class MultiShapePipeline {
 
         fn sdTriangle(p: vec2f, r: f32) -> f32 {
             let k = sqrt(3.0);
-            var q = vec2f(abs(p.x) - r, p.y + r / k);
+            var q = vec2f(abs(p.x) - r, p.y + 1.3 * r / k);
             if (q.x + k * q.y > 0.0) {
                 q = vec2f(q.x - k * q.y, -k * q.x - q.y) / 2.0;
             }
@@ -244,7 +244,7 @@ export class MultiShapePipeline {
           @location(2) shapeType: f32,
           @location(3) instanceIndex: f32
         ) -> @location(0) vec4<f32> {
-            // UV coordinates are in the shape's local space
+            // UV coordinates are in the shape's local space (-1 to 1)
             let p = uv;
             
             // Calculate all SDFs first (uniform control flow)
