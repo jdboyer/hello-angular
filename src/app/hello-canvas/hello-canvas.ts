@@ -7,7 +7,7 @@ import { MultiShapePipeline } from '../pipelines/multi-circle-pipeline';
 import { GridPipeline } from '../pipelines/grid-pipeline';
 import { OverlayComponent } from './overlay.component';
 import { signal } from '@angular/core';
-import { HostRow } from '../chart-helper';
+import { HostRow, ChartScene } from '../chart-helper';
 import { ShapeScene } from '../pipelines/multi-circle-pipeline';
 
 export interface CircleScene {
@@ -21,6 +21,7 @@ export interface MousePosition {
   x: number;
   y: number;
   nearestYAxisLabel: string;
+  version: string;
 }
 
 export interface Scene {
@@ -200,11 +201,15 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     // Find the nearest y-axis label based on Y position
     const nearestLabel = this.getNearestYAxisLabel(position.y);
     
-    // Emit the mouse position with the nearest label to the parent component
+    // Calculate version from X position
+    const version = this.getVersionFromXPosition(position.x);
+    
+    // Emit the mouse position with the nearest label and version to the parent component
     this.mousePositionChange.emit({
       x: position.x,
       y: position.y,
-      nearestYAxisLabel: nearestLabel
+      nearestYAxisLabel: nearestLabel,
+      version: version
     });
   }
 
@@ -227,7 +232,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     const canvasHeightRem = 60; // From .my-canvas height
     const canvasTopY = 0;
     
-    console.log(yPosition);
     // Convert Y position to percentage relative to canvas
     const yPercentage = ((yPosition + canvasTopY) / canvasHeightRem) * 100;
     
@@ -247,6 +251,105 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     
     // Return the corresponding label
     return gridLineLabels[nearestIndex] || '';
+  }
+
+  /**
+   * Get the version from X position
+   * @param xPosition X position in rem units
+   * @returns The version string or empty string if not found
+   */
+  private getVersionFromXPosition(xPosition: number): string {
+    const scene = this.scene();
+    const xAxisLabels = scene.xAxisLabels;
+    const spacing = scene.spacing;
+    
+    if (xAxisLabels.length === 0) {
+      return '';
+    }
+    
+    // Calculate version index from X position
+    // X position formula: baseX = versionIndex * spacing + 4
+    // So: versionIndex = (xPosition - 4) / spacing
+    const versionIndex = Math.floor((xPosition + 4) / spacing);
+    
+    // Check if the version index is valid
+    if (versionIndex >= 0 && versionIndex < xAxisLabels.length) {
+      return xAxisLabels[versionIndex];
+    }
+    
+    return '';
+  }
+
+  /**
+   * Find the instance index of a shape given a host and version
+   * @param hostname The hostname to search for
+   * @param version The version to search for
+   * @returns The instance index of the shape, or -1 if not found
+   */
+  public findShapeInstanceIndex(hostname: string, version: string): number {
+    const scene = this.scene();
+    
+    // Find the host index from gridLineLabels
+    const hostIndex = scene.gridLineLabels.findIndex(label => {
+      // Extract hostname from label format: "hostname (platform - subplatform)" or "hostname (platform)"
+      const match = label.match(/^([^(]+)/);
+      return match && match[1].trim() === hostname;
+    });
+    
+    if (hostIndex === -1) {
+      return -1;
+    }
+    
+    // Find the version index from xAxisLabels
+    const versionIndex = scene.xAxisLabels.findIndex(v => v === version);
+    if (versionIndex === -1) {
+      return -1;
+    }
+    
+    // Calculate the expected Y position for this host
+    const expectedY = (1 - scene.gridLines[hostIndex]) * 60;
+    
+    // Calculate the expected X position for this version
+    const baseX = versionIndex * scene.spacing + 4;
+    
+    // Find the shape that matches both the host (Y position) and version (X position)
+    // We need to account for multiple shapes per host-version combination
+    const shapes = scene.circles;
+    let instanceIndex = -1;
+    
+    for (let i = 0; i < shapes.length; i++) {
+      const shape = shapes[i];
+      
+      // Check if this shape is in the correct version column (X position)
+      const shapeVersionIndex = Math.floor((shape.x - 4) / scene.spacing);
+      if (shapeVersionIndex !== versionIndex) {
+        continue;
+      }
+      
+      // Check if this shape is for the correct host (Y position)
+      // Allow for small floating point differences
+      if (Math.abs(shape.y - expectedY) < 0.1) {
+        instanceIndex = i;
+        break;
+      }
+    }
+    
+    return instanceIndex;
+  }
+
+  /**
+   * Highlight a shape by host and version
+   * @param hostname The hostname to search for
+   * @param version The version to search for
+   * @returns true if the shape was found and highlighted, false otherwise
+   */
+  public highlightShapeByHostAndVersion(hostname: string, version: string): boolean {
+    const instanceIndex = this.findShapeInstanceIndex(hostname, version);
+    if (instanceIndex !== -1) {
+      this.highlightShape(instanceIndex);
+      return true;
+    }
+    return false;
   }
 
   /**

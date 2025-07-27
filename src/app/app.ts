@@ -24,7 +24,7 @@ export class App {
   protected readonly scene = signal<Scene>(createChartScene(8, 200));
   
   // Signal for mouse position
-  protected readonly mousePosition = signal<MousePosition>({x: 0, y: 0, nearestYAxisLabel: ''});
+  protected readonly mousePosition = signal<MousePosition>({x: 0, y: 0, nearestYAxisLabel: '', version: ''});
   
   // Signal for current highlight index
   protected readonly currentHighlightIndex = signal<number>(-1);
@@ -74,19 +74,70 @@ export class App {
    */
   onMousePositionChange(position: MousePosition): void {
     this.mousePosition.set(position);
-    this.highlightRandomShape();
+    this.highlightCurrentPosition();
   }
 
   /**
-   * Highlight a random shape when mouse moves
+   * Highlight the shape at the current mouse position
    */
-  private highlightRandomShape(): void {
-    if (this.helloCanvas && this.helloCanvas.multiShapePipeline) {
-      const shapes = this.scene().circles;
-      if (shapes.length > 0) {
-        const randomIndex = Math.floor(Math.random() * shapes.length);
-        this.currentHighlightIndex.set(randomIndex);
-        this.helloCanvas.highlightShape(randomIndex);
+  private highlightCurrentPosition(): void {
+    const mousePos = this.mousePosition();
+    if (mousePos.version && mousePos.nearestYAxisLabel && this.helloCanvas) {
+      // Extract hostname from the label
+      const match = mousePos.nearestYAxisLabel.match(/^([^(]+)/);
+      if (match) {
+        const hostname = match[1].trim();
+        const success = this.helloCanvas.highlightShapeByHostAndVersion(hostname, mousePos.version);
+        if (success) {
+          // Find the instance index to update the display
+          const instanceIndex = this.helloCanvas.findShapeInstanceIndex(hostname, mousePos.version);
+          this.currentHighlightIndex.set(instanceIndex);
+        } else {
+          // If no shape found, clear the highlight
+          this.currentHighlightIndex.set(-1);
+          this.helloCanvas.highlightShape(-1);
+        }
+      }
+    } else {
+      // If no valid position, clear the highlight
+      this.currentHighlightIndex.set(-1);
+      if (this.helloCanvas) {
+        this.helloCanvas.highlightShape(-1);
+      }
+    }
+  }
+
+  /**
+   * Test method to find and highlight a shape by host and version
+   * @param hostname The hostname to search for
+   * @param version The version to search for
+   */
+  testFindShapeByHostAndVersion(hostname: string, version: string): void {
+    if (this.helloCanvas) {
+      const instanceIndex = this.helloCanvas.findShapeInstanceIndex(hostname, version);
+      console.log(`Found shape for host "${hostname}" and version "${version}" at index: ${instanceIndex}`);
+      
+      if (instanceIndex !== -1) {
+        this.currentHighlightIndex.set(instanceIndex);
+        this.helloCanvas.highlightShape(instanceIndex);
+      } else {
+        console.log(`No shape found for host "${hostname}" and version "${version}"`);
+      }
+    }
+  }
+
+  /**
+   * Test method to highlight a shape by host and version
+   * @param hostname The hostname to search for
+   * @param version The version to search for
+   */
+  testHighlightByHostAndVersion(hostname: string, version: string): void {
+    if (this.helloCanvas) {
+      const success = this.helloCanvas.highlightShapeByHostAndVersion(hostname, version);
+      if (success) {
+        console.log(`Successfully highlighted shape for host "${hostname}" and version "${version}"`);
+      } else {
+        console.log(`Failed to highlight shape for host "${hostname}" and version "${version}"`);
       }
     }
   }
