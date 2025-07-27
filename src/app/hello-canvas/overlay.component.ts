@@ -6,16 +6,18 @@ import { Component, Input, Output, signal, computed, EventEmitter, Signal } from
   template: `
     <div class="overlay-container">
       @for (text of visibleTexts(); track $index; let i = $index) {
-        <span
-          class="axis-label"
-          [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX() + convertRemToPixels(overlayXOffset())"
-        >{{ text }}</span>
+        <div class="tick-container top-tick-container"
+             [style.left.px]="(i) * convertRemToPixels(textSpacing) + offsetX() + convertRemToPixels(overlayXOffset())">
+          <span class="axis-label">{{ text }}</span>
+          <div class="tick-mark top-tick"></div>
+        </div>
       }
       @for (label of visibleBottomLabels(); track $index) {
-        <span
-          class="bottom-axis-label"
-          [style.left.px]="convertRemToPixels(label.xOffset) - getBottomLabelsScrollOffset() + convertRemToPixels(overlayXOffset())"
-        >{{ label.text }}</span>
+        <div class="tick-container bottom-tick-container"
+             [style.left.px]="convertRemToPixels(label.xOffset) - getBottomLabelsScrollOffset() + convertRemToPixels(overlayXOffset())">
+          <div class="tick-mark bottom-tick"></div>
+          <span class="bottom-axis-label">{{ label.text }}</span>
+        </div>
       }
       <div 
         class="overlay-scrollbar"

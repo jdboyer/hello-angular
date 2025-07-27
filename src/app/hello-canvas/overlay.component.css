@@ -8,6 +8,40 @@
   z-index: 20;
   overflow: hidden; /* prevent horizontal scrollbar from off-screen labels */
 }
+
+.tick-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.top-tick-container {
+  top: 20rem;
+}
+
+.bottom-tick-container {
+  bottom: 5rem;
+}
+
+.tick-mark {
+  width: 2px;
+  background: #fff;
+  box-shadow: 0 1px 2px #000;
+  z-index: 21;
+}
+
+.top-tick {
+  height: 12px;
+  margin-top: 8px; /* Space between label and tick */
+}
+
+.bottom-tick {
+  height: 12px;
+  margin-bottom: 8px; /* Space between tick and label */
+  background: #ff6b6b; /* Same color as bottom labels */
+}
 .overlay-text-row {
   position: absolute;
   left: 0;
@@ -32,24 +66,21 @@
   rotate: 70deg;
   transform: translateY(-100px);
 }
+
 .axis-label {
-  position: absolute;
   white-space: nowrap;
   font-weight: 500;
   text-shadow: 0 1px 2px #000;
   rotate: -70deg;
   transform: translateY(0px);
-  top: 20rem;
 }
 
 .bottom-axis-label {
-  position: absolute;
   white-space: nowrap;
   font-weight: 500;
   text-shadow: 0 1px 2px #000;
   rotate: 70deg;
-  transform: translateY(0px);
-  bottom: 4rem;
+  transform: translateY(0px) translateX(20px);
   color: #ff6b6b;
   font-size: 1.2rem;
   z-index: 25;
