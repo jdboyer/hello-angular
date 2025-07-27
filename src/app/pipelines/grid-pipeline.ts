@@ -46,7 +46,7 @@ export class GridPipeline {
       code: `
         @fragment
         fn main() -> @location(0) vec4<f32> {
-          return vec4<f32>(0.7, 0.7, 0.7, 1.0); // light gray lines
+          return vec4<f32>(0.3, 0.3, 0.3, 1.0); // light gray lines
         }
       `,
     });
