@@ -183,6 +183,9 @@ export function createSampleChartScene(): ChartScene {
 export function createVersionColumns(hostRows: HostRow[]): VersionColumn[] {
   const versionColumns: VersionColumn[] = [];
   
+  // Select two hosts to have zero test results (first and last hosts)
+  const hostsWithZeroResults = [0, hostRows.length - 1];
+  
   // Create 100 versions from v1.0.1 to v1.0.100
   for (let versionNum = 1; versionNum <= 100; versionNum++) {
     const version = `v1.0.${versionNum}`;
@@ -210,9 +213,9 @@ export function createVersionColumns(hostRows: HostRow[]): VersionColumn[] {
     
     // Generate test results
     for (let i = 0; i < totalTestResults; i++) {
-      // Find hosts that have less than 3 test results
+      // Find hosts that have less than 3 test results AND are not in the zero results list
       const availableHosts = Array.from(hostTestCounts.entries())
-        .filter(([_, count]) => count < 3)
+        .filter(([hostIndex, count]) => count < 3 && !hostsWithZeroResults.includes(hostIndex))
         .map(([hostIndex, _]) => hostIndex);
       
       if (availableHosts.length === 0) {
