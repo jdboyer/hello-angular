@@ -233,7 +233,8 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
     spacing: spacingRem,
     overlayXOffset: overlayXOffset,
     scrollRangeRem: scrollRangeRem,
-    chartScene: chartData // Include the original chart data
+    chartScene: chartData, // Include the original chart data
+    backgroundColor: chartData.backgroundColor || [0.1, 0.1, 0.1, 1.0] // Use provided background color or default to dark gray
   };
 }
 
@@ -259,6 +260,7 @@ export function processChartScene(chartData: ChartScene, spacingRem: number = 4,
     spacing: spacingRem,
     overlayXOffset: overlayXOffset,
     scrollRangeRem: scrollRangeRem,
-    chartScene: chartData // Include the original chart data
+    chartScene: chartData, // Include the original chart data
+    backgroundColor: chartData.backgroundColor || [0.1, 0.1, 0.1, 1.0] // Use provided background color or default to dark gray
   };
 } 

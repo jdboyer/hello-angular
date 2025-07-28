@@ -33,6 +33,7 @@ export interface ChartScene {
   hostRows: HostRow[];
   versionColumns: VersionColumn[];
   testResultMappings?: Map<number, TestResultMapping>; // Optional mapping, defaults will be used if not provided
+  backgroundColor?: [number, number, number, number]; // Optional background color as RGBA values, defaults to dark gray
 }
 
 export interface CircleScene {
@@ -59,6 +60,7 @@ export interface Scene {
   overlayXOffset: number; // X offset in rem units to shift all overlay text
   scrollRangeRem: number; // Total scrollable width in rem units
   chartScene?: ChartScene; // Original chart data for future reference
+  backgroundColor: [number, number, number, number]; // Background color as RGBA values
 }
 
 @Component({
@@ -534,11 +536,12 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     const commandEncoder = this.device.createCommandEncoder();
 
     const textureView = this.context.getCurrentTexture().createView();
+    const backgroundColor = this.scene().backgroundColor;
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
         {
           view: textureView,
-          clearValue: { r: 0.1, g: 0.1, b: 0.1, a: 1.0 },
+          clearValue: { r: backgroundColor[0], g: backgroundColor[1], b: backgroundColor[2], a: backgroundColor[3] },
           loadOp: 'clear',
           storeOp: 'store',
         },
