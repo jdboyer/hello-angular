@@ -242,8 +242,49 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
  * Process a ChartScene into a Scene for rendering
  */
 export function processChartScene(chartData: ChartScene, spacingRem: number = 4, scrollRangeRem: number = 200): Scene {
-  const hostGridLines = createHostGridLines(chartData.hostRows);
-  const gridLineLabels = createGridLineLabels(chartData.hostRows);
+  // First, determine which hosts have test results by analyzing all version columns
+  const hostsWithTestResults = new Set<number>();
+  
+  // Iterate through all version columns to find hosts that have at least one test result
+  chartData.versionColumns.forEach(versionColumn => {
+    versionColumn.testResults.forEach(testResult => {
+      hostsWithTestResults.add(testResult.hostIndex);
+    });
+  });
+  
+  // Create filtered host rows and index mapping
+  const filteredHostRows: HostRow[] = [];
+  const oldToNewIndexMap = new Map<number, number>();
+  let newIndex = 0;
+  
+  chartData.hostRows.forEach((hostRow, oldIndex) => {
+    if (hostsWithTestResults.has(oldIndex)) {
+      filteredHostRows.push(hostRow);
+      oldToNewIndexMap.set(oldIndex, newIndex);
+      newIndex++;
+    }
+  });
+  
+  // Create a new ChartScene with filtered host rows
+  const filteredChartData: ChartScene = {
+    ...chartData,
+    hostRows: filteredHostRows
+  };
+  
+  // Update test result host indices in all version columns
+  const updatedVersionColumns = chartData.versionColumns.map(versionColumn => ({
+    ...versionColumn,
+    testResults: versionColumn.testResults.map(testResult => ({
+      ...testResult,
+      hostIndex: oldToNewIndexMap.get(testResult.hostIndex)!
+    }))
+  }));
+  
+  filteredChartData.versionColumns = updatedVersionColumns;
+  
+  // Create grid lines and labels for filtered hosts
+  const hostGridLines = createHostGridLines(filteredHostRows);
+  const gridLineLabels = createGridLineLabels(filteredHostRows);
   scrollRangeRem = spacingRem * chartData.versionColumns.length + 20;
   const overlayXOffset = 1;
   const monthLabels = createMonthLabels(chartData, spacingRem, overlayXOffset);
@@ -253,14 +294,14 @@ export function processChartScene(chartData: ChartScene, spacingRem: number = 4,
   
   return {
     gridLines: hostGridLines,
-    circles: createChartShapes(chartData, hostGridLines, spacingRem, overlayXOffset),
+    circles: createChartShapes(filteredChartData, hostGridLines, spacingRem, overlayXOffset),
     xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
     spacing: spacingRem,
     overlayXOffset: overlayXOffset,
     scrollRangeRem: scrollRangeRem,
-    chartScene: chartData, // Include the original chart data
+    chartScene: chartData, // Keep original chart data for reference
     backgroundColor: chartData.backgroundColor || [0.1, 0.1, 0.1, 1.0] // Use provided background color or default to dark gray
   };
 } 
