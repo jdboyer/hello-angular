@@ -175,8 +175,7 @@ export function createSampleChartScene(): ChartScene {
   return {
     hostRows,
     versionColumns,
-    //backgroundColor: [0.1, 0.1, 0.1, 1.0] // Default dark gray background
-    backgroundColor: [0.2, 0.3, 0.4, 1.0] // Custom blue-gray background
+    backgroundColor: [0.102, 0.102, 0.102, 1.0] // Match body background color #1a1a1a
   };
 }
 
