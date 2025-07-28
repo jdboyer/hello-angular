@@ -82,7 +82,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   // Computed signal to process ChartScene into Scene
   scene = computed(() => {
     const height = this.canvasHeightRem();
-    console.log('Processing scene with canvasHeightRem:', height);
     return processChartScene(this.chartScene(), 4, 200, height);
   });
 
@@ -264,6 +263,9 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
           this.highlightShape(-1);
           this.selectedTestResult.set(null);
         }
+      } else {
+        this.highlightShape(-1);
+        this.selectedTestResult.set(null);
       }
     } else {
       // If no valid position, clear the highlight and set null
@@ -348,7 +350,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     const chartScene = scene.chartScene;
     
     if (!chartScene) {
-      console.error('Chart scene data not available');
       return null;
     }
     
@@ -468,7 +469,6 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
    * @param highlightIndex Index of shape to highlight (-1 for no highlight)
    */
   highlightShape(highlightIndex: number): void {
-    //highlightIndex = 0;
     if (this.multiShapePipeline && this.device) {
       this.multiShapePipeline.setHighlightIndex(this.device, highlightIndex);
       this.drawScene(); // Redraw to show the highlight

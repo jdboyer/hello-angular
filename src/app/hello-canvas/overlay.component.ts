@@ -207,7 +207,7 @@ export class OverlayComponent {
   }
 
   onMouseMove(event: MouseEvent): void {
-    // Calculate mouse position relative to scene in rem units
+    // Always calculate and emit mouse position for tracking
     const sceneRelativePosition = this.calculateSceneRelativePosition(event);
     this.mousePositionChange.emit(sceneRelativePosition);
     

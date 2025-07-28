@@ -276,7 +276,9 @@ export function processChartScene(chartData: ChartScene, spacingRem: number = 4,
     ...versionColumn,
     testResults: versionColumn.testResults.map(testResult => ({
       ...testResult,
-      hostIndex: oldToNewIndexMap.get(testResult.hostIndex)!
+      hostIndex: oldToNewIndexMap.get(testResult.hostIndex)!,
+      // Preserve any existing globalTestResultIndex
+      globalTestResultIndex: testResult.globalTestResultIndex
     }))
   }));
   
@@ -301,7 +303,7 @@ export function processChartScene(chartData: ChartScene, spacingRem: number = 4,
     spacing: spacingRem,
     overlayXOffset: overlayXOffset,
     scrollRangeRem: scrollRangeRem,
-    chartScene: chartData, // Keep original chart data for reference
+    chartScene: filteredChartData, // Use filtered chart data with updated indices and globalTestResultIndex values
     backgroundColor: chartData.backgroundColor || [0.1, 0.1, 0.1, 1.0] // Use provided background color or default to dark gray
   };
 } 
