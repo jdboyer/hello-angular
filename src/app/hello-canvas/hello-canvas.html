@@ -1,4 +1,4 @@
-<div class="example-container">
+<div class="example-container" [style.--canvas-height]="canvasHeightRem() + 'rem'">
   <div class="left-sidebar">
     <div class="y-axis-labels">
       @for (label of gridLineLabelsList(); track $index; let i = $index) {
@@ -10,7 +10,7 @@
     </div>
   </div>
   <div class="chart-container" style="position:relative;">
-    <app-overlay [scrollRange]="computedScrollRange" [scrollPosition]="scrollPosition" [textList]="textList" [bottomLabelsList]="bottomLabelsList" [offsetX]="offsetX" [overlayXOffset]="overlayXOffset" [canvasWidth]="canvasWidth" [textSpacing]="textSpacing()" (scrollPositionChange)="onScrollPositionChange($event)" (mousePositionChange)="onMousePositionChange($event)"></app-overlay>
+    <app-overlay [scrollRange]="computedScrollRange" [scrollPosition]="scrollPosition" [textList]="textList" [bottomLabelsList]="bottomLabelsList" [offsetX]="offsetX" [overlayXOffset]="overlayXOffset" [canvasWidth]="canvasWidth" [canvasHeightRem]="canvasHeightRem()" [textSpacing]="textSpacing()" (scrollPositionChange)="onScrollPositionChange($event)" (mousePositionChange)="onMousePositionChange($event)"></app-overlay>
     <canvas #drawingCanvas class="my-canvas"></canvas>
   </div>
 </div>

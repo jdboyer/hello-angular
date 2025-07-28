@@ -1,4 +1,4 @@
-import { Component, Input, Output, signal, computed, EventEmitter, Signal, ViewChild, ElementRef, effect } from '@angular/core';
+import { Component, Input, Output, signal, computed, EventEmitter, Signal, ViewChild, ElementRef, effect, input } from '@angular/core';
 
 @Component({
   selector: 'app-overlay',
@@ -47,6 +47,7 @@ export class OverlayComponent {
   @Input({ required: true }) offsetX = signal(0);
   @Input({ required: true }) overlayXOffset = signal(0); // X offset in rem units to shift all overlay text
   @Input({ required: true }) canvasWidth = signal(500);
+  canvasHeightRem = input.required<number>();
   @Input() textSpacing!: number; // Spacing in rem units
   @Output() scrollPositionChange = new EventEmitter<number>();
   @Output() mousePositionChange = new EventEmitter<{x: number, y: number}>();
@@ -102,10 +103,9 @@ export class OverlayComponent {
     const sceneX = xRem + scrollOffsetRem - overlayXOffset;
     
     // Y position: relative to top of canvas (y = 0 at top)
-    // The canvas is 10rem height and centered in the 60rem container
-    const containerHeightRem = 60; // From .example-container height
-    const canvasHeightRem = 60; // From .my-canvas height
-    const canvasTopY = (containerHeightRem - canvasHeightRem) / 2; // 25rem from container top
+    // Use dynamic canvas height from input
+    const canvasHeightRem = this.canvasHeightRem(); // From component input
+    const canvasTopY = 0; // Canvas is at top of container
     const sceneY = yRem - canvasTopY;
     
     return {x: sceneX, y: sceneY};

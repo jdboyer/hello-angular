@@ -142,7 +142,7 @@ function createMonthLabels(chartData: ChartScene, spacingRem: number, overlayXOf
 /**
  * Create chart shapes based on chart data
  */
-function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8, overlayXOffset: number = 4): ShapeScene[] {
+function createChartShapes(chartData: ChartScene, hostGridLines: number[], spacingRem: number = 8, overlayXOffset: number = 4, canvasHeightRem: number = 60): ShapeScene[] {
   const shapes: ShapeScene[] = [];
   let globalTestResultIndex = 0; // Global index to track all test results across all version columns
   
@@ -166,7 +166,7 @@ function createChartShapes(chartData: ChartScene, hostGridLines: number[], spaci
       const x = baseX + xOffset;
       
       // Get the y position from the corresponding host grid line
-      const y = (1 - hostGridLines[testResult.hostIndex]) * 60;
+      const y = (1 - hostGridLines[testResult.hostIndex]) * canvasHeightRem;
       
       // Get the mapping for this test result value
       const mapping = testResultMappings.get(testResult.result);
@@ -214,7 +214,7 @@ function createGridLineLabels(hostRows: HostRow[]): string[] {
 /**
  * Create a chart scene with custom spacing
  */
-export function createChartScene(spacingRem: number = 8, scrollRangeRem: number = 200): Scene {
+export function createChartScene(spacingRem: number = 8, scrollRangeRem: number = 200, canvasHeightRem: number = 60): Scene {
   const chartData = createSampleChartScene();
   const hostGridLines = createHostGridLines(chartData.hostRows);
   const gridLineLabels = createGridLineLabels(chartData.hostRows);
@@ -226,7 +226,7 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
   
   return {
     gridLines: hostGridLines,
-    circles: createChartShapes(chartData, hostGridLines, spacingRem, overlayXOffset),
+    circles: createChartShapes(chartData, hostGridLines, spacingRem, overlayXOffset, canvasHeightRem),
     xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,
@@ -241,7 +241,7 @@ export function createChartScene(spacingRem: number = 8, scrollRangeRem: number 
 /**
  * Process a ChartScene into a Scene for rendering
  */
-export function processChartScene(chartData: ChartScene, spacingRem: number = 4, scrollRangeRem: number = 200): Scene {
+export function processChartScene(chartData: ChartScene, spacingRem: number = 4, scrollRangeRem: number = 200, canvasHeightRem: number = 60): Scene {
   // First, determine which hosts have test results by analyzing all version columns
   const hostsWithTestResults = new Set<number>();
   
@@ -294,7 +294,7 @@ export function processChartScene(chartData: ChartScene, spacingRem: number = 4,
   
   return {
     gridLines: hostGridLines,
-    circles: createChartShapes(filteredChartData, hostGridLines, spacingRem, overlayXOffset),
+    circles: createChartShapes(filteredChartData, hostGridLines, spacingRem, overlayXOffset, canvasHeightRem),
     xAxisLabels: xAxisLabels,
     gridLineLabels: gridLineLabels,
     bottomLabels: monthLabels,

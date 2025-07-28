@@ -75,9 +75,16 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
   // Input signal for the chart scene
   chartScene = input.required<ChartScene>();
   
+  // Input signal for the canvas height in rem units
+  canvasHeightRem = input<number>(60);
+  
   
   // Computed signal to process ChartScene into Scene
-  scene = computed(() => processChartScene(this.chartScene()));
+  scene = computed(() => {
+    const height = this.canvasHeightRem();
+    console.log('Processing scene with canvasHeightRem:', height);
+    return processChartScene(this.chartScene(), 4, 200, height);
+  });
 
   private adapter!: GPUAdapter | null;
   public device!: GPUDevice;
@@ -279,9 +286,8 @@ export class HelloCanvas implements AfterViewInit, OnDestroy {
     }
     
     // Convert Y position to percentage (0-100) to match grid line positioning
-    // The canvas is 10rem height and centered in the 60rem container
-    const containerHeightRem = 60; // From .example-container height
-    const canvasHeightRem = 60; // From .my-canvas height
+    // Use dynamic canvas height from input
+    const canvasHeightRem = this.canvasHeightRem(); // From component input
     const canvasTopY = 0;
     
     // Convert Y position to percentage relative to canvas
